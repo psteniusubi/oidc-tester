@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="content-language" content="en" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <style type="text/css">
+        div.grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        div.grid div {
+            margin-right: 0.5em;
+        }
+
+        form div {
+            display: flex;
+        }
+
+        form div label {
+            flex: none;
+            margin-right: 0.5em;
+        }
+
+        form div input,
+        form div select {
+            flex: 1;
+            height: 1.5rem;
+        }
+    </style>
+    <script async type="module">
+        import { parsed } from "./modules/document-promises.js";
+        import { http_get, http_post } from "./modules/fetch.js";
+        import { Configuration } from "./modules/configuration.js";
+
+        const config = new Configuration("config");
+
+        async function build_authorization_request() {
+            const issuer = config.get_active_issuer();
+            const form = document.getElementById("authorization_request");
+            form.setAttribute("action", "");
+            form.reset();
+            // if (issuer.value == "") return;
+            const issuer_metadata = await config.get_issuer_metadata(issuer);
+            let text = document.getElementById("authorization_endpoint");
+            text.value = "authorization_endpoint" in issuer_metadata
+                ? issuer_metadata.authorization_endpoint
+                : "";
+            form.setAttribute("action", text.value);
+            form.elements["response_type"].value = "code";
+            const client = config.get_active_client();
+            // if (client.value == "") return;
+            const client_metadata = await config.get_client_metadata(issuer, client);
+            if ("client_id" in client_metadata) {
+                form.elements["client_id"].value = client_metadata.client_id;
+            }
+            if ("redirect_uris" in client_metadata) {
+                form.elements["redirect_uri"].value = client_metadata.redirect_uris[0];
+                for (const i of client_metadata.redirect_uris) {
+                    if (location.href === i) {
+                        form.elements["redirect_uri"].value = i;
+                    }
+                }
+            } else {
+                form.elements["redirect_uri"].value = location.href;
+            }
+            form.elements["scope"].value = "openid";
+            build_token_request();
+        }
+
+        async function send_authorization_request(e) {
+            e.preventDefault();
+            const authorization_request = new URL(document.getElementById("authorization_endpoint").value);;
+            const params = new URLSearchParams(authorization_request.search);
+            for (const [k, v] of new URLSearchParams(new FormData(e.target))) {
+                if (v === null || /^\s*$/.test(v)) {
+                    continue;
+                }
+                params.append(k, v);
+            }
+            authorization_request.search = params;
+            location.assign(authorization_request);
+            return false;
+        }
+
+        function authorization_response() {
+            const query = new URLSearchParams(location.search);
+            const form = document.getElementById("authorization_response");
+            form.elements["code"].value = query.get("code");
+            form.elements["state"].value = query.get("state");
+            form.elements["error"].value = query.get("error");
+        }
+
+        async function build_token_request() {
+            const issuer = config.get_active_issuer();
+            const issuer_metadata = await config.get_issuer_metadata(issuer);
+            const client = config.get_active_client();
+            const client_metadata = await config.get_client_metadata(issuer, client);
+            const authorization_request = document.getElementById("authorization_request");
+            const authorization_response = document.getElementById("authorization_response");
+            const form = document.getElementById("token_request");
+            form.reset();
+            document.getElementById("token_endpoint").value = issuer_metadata.token_endpoint;
+            form.elements["grant_type"].value = "authorization_code";
+            form.elements["code"].value = authorization_response.elements["code"].value;
+            form.elements["redirect_uri"].value = authorization_request.elements["redirect_uri"].value;
+            form.elements["client_id"].value = authorization_request.elements["client_id"].value;
+            if ("client_secret" in client_metadata) {
+                form.elements["client_secret"].value = client_metadata.client_secret;
+            }
+            build_introspection_request();
+        }
+
+        async function send_token_request(e) {
+            e.preventDefault();
+            const request = new URLSearchParams(new FormData(e.target));
+            const token_endpoint = document.getElementById("token_endpoint").value;
+            let response;
+            try {
+                response = await http_post(token_endpoint, request);
+                history.replaceState(null, null, location.pathname);
+                document.getElementById("authorization_response").reset();
+                build_token_request();
+            } catch (e) {
+                if ("http_response" in e) {
+                    response = await e.http_response.json();
+                }
+            }
+            const form = document.getElementById("token_response");
+            form.reset();
+            for (const k of Object.keys(response)) {
+                const e = form.elements[k];
+                if (e === undefined) continue;
+                e.value = response[k];
+            }
+            form.elements["json"].value = JSON.stringify(response, null, 2);
+            form.elements["json"].dispatchEvent(new CustomEvent("input"));
+            build_introspection_request();
+        }
+
+        async function build_introspection_request() {
+            const issuer = config.get_active_issuer();
+            const issuer_metadata = await config.get_issuer_metadata(issuer);
+            const client = config.get_active_client();
+            const client_metadata = await config.get_client_metadata(issuer, client);
+            const token_response = document.getElementById("token_response");
+            const form = document.getElementById("introspection_request");
+            form.reset();
+            document.getElementById("introspection_endpoint").value = issuer_metadata.introspection_endpoint || "";
+            form.elements["token"].value = token_response.elements["access_token"].value;
+            form.elements["client_id"].value = client_metadata.client_id;
+            form.elements["client_secret"].value = client_metadata.client_secret;
+        }
+
+        async function send_introspection_request(e) {
+            e.preventDefault();
+            const request = new URLSearchParams(new FormData(e.target));
+            const introspection_endpoint = document.getElementById("introspection_endpoint").value;
+            let response;
+            try {
+                response = await http_post(introspection_endpoint, request);
+                //history.replaceState(null, null, location.pathname);
+                //document.getElementById("authorization_response").reset();
+                //build_token_request();
+            } catch (e) {
+                if ("http_response" in e) {
+                    response = await e.http_response.json();
+                }
+            }
+            const form = document.getElementById("introspection_response");
+            form.reset();
+            for (const k of Object.keys(response)) {
+                const e = form.elements[k];
+                if (e === undefined) continue;
+                e.value = response[k];
+            }
+            form.elements["json"].value = JSON.stringify(response, null, 2);
+            form.elements["json"].dispatchEvent(new CustomEvent("input"));
+        }
+
+        async function content_loaded() {
+            await parsed;
+            document.getElementById("active_issuer").innerText = config.get_active_issuer();
+            document.getElementById("active_client").innerText = config.get_active_client();
+            document.getElementById("authorization_request").addEventListener("submit", send_authorization_request);
+            document.getElementById("token_request").addEventListener("submit", send_token_request);
+            document.getElementById("introspection_request").addEventListener("submit", send_introspection_request);
+            for (let i of document.getElementsByTagName("textarea")) {
+                console.log(`i = ${i}`);
+                i.addEventListener("input", e => {
+                    e.target.style = "height: auto;";
+                    e.target.style = `height: ${e.target.scrollHeight}px;`;
+                });
+            }
+            build_authorization_request();
+            authorization_response();
+        }
+
+        content_loaded();
+
+    </script>
+</head>
+
+<body>
+
+    <div id="div_configuration">
+        <h1>Configuration</h1>
+        <div>Active issuer: <span id="active_issuer"></span></div>
+        <div>Active client: <span id="active_client"></span></div>
+        <div>
+            [<a href="configuration.html">configuration.html</a>]
+        </div>
+    </div>
+
+    <div class="grid">
+
+        <div id="div_authorization_request">
+            <h1>Authorization Request</h1>
+            <div>
+                <form id="authorization_request" method="GET" autocomplete="off">
+                    <div>
+                        <label for="authorization_endpoint">authorization_endpoint</label>
+                        <input type="text" id="authorization_endpoint" />
+                    </div>
+                    <div>
+                        <label for="response_type">response_type</label>
+                        <input type="text" name="response_type" />
+                    </div>
+                    <div>
+                        <label for="client_id">client_id</label>
+                        <input type="text" name="client_id" />
+                    </div>
+                    <div>
+                        <label for="redirect_uri">redirect_uri</label>
+                        <input type="text" name="redirect_uri" />
+                    </div>
+                    <div>
+                        <label for="scope">scope</label>
+                        <input type="text" name="scope" />
+                    </div>
+                    <div>
+                        <label for="state">state</label>
+                        <input type="text" name="state" />
+                    </div>
+                    <div>
+                        <label for="nonce">nonce</label>
+                        <input type="text" name="nonce" />
+                    </div>
+                    <div>
+                        <label for="max_age">max_age</label>
+                        <input type="number" name="max_age" />
+                    </div>
+                    <div>
+                        <label for="acr_values">acr_values</label>
+                        <input type="text" name="acr_values" />
+                    </div>
+                    <div>
+                        <label for="prompt">prompt</label>
+                        <select name="prompt">
+                            <option></option>
+                            <option>none</option>
+                            <option>login</option>
+                            <option>consent</option>
+                            <option>select_account</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit">Invoke Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="div_authorization_response">
+            <h1>Authorization Response</h1>
+            <div>
+                <form id="authorization_response" autocomplete="off">
+                    <div>
+                        <label for="code">code</label>
+                        <input type="text" readonly name="code" />
+                    </div>
+                    <div>
+                        <label for="error">error</label>
+                        <input type="text" readonly name="error" />
+                    </div>
+                    <div>
+                        <label for="state">state</label>
+                        <input type="text" readonly name="state" />
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="div_token_request">
+            <h1>Token Request</h1>
+            <div>
+                <form id="token_request" autocomplete="off">
+                    <div>
+                        <label for="token_endpoint">token_endpoint</label>
+                        <input type="text" id="token_endpoint" />
+                    </div>
+                    <div>
+                        <label for="grant_type">grant_type</label>
+                        <input type="text" name="grant_type" />
+                    </div>
+                    <div>
+                        <label for="code">code</label>
+                        <input type="text" name="code" />
+                    </div>
+                    <div>
+                        <label for="redirect_uri">redirect_uri</label>
+                        <input type="text" name="redirect_uri" />
+                    </div>
+                    <div>
+                        <label for="client_id">client_id</label>
+                        <input type="text" name="client_id" />
+                    </div>
+                    <div>
+                        <label for="client_secret">client_secret</label>
+                        <input type="password" name="client_secret" autocomplete="off" />
+                    </div>
+                    <div>
+                        <button type="submit">Invoke Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="div_token_response">
+            <h1>Token Response</h1>
+            <div>
+                <form id="token_response" autocomplete="off">
+                    <div>
+                        <label for="access_token">access_token</label>
+                        <input type="text" name="access_token" />
+                    </div>
+                    <div>
+                        <label for="id_token">id_token</label>
+                        <input type="text" name="id_token" />
+                    </div>
+                    <div>
+                        <label for="token_type">token_type</label>
+                        <input type="text" name="token_type" />
+                    </div>
+                    <div>
+                        <label for="expires_in">expires_in</label>
+                        <input type="text" name="expires_in" />
+                    </div>
+                    <div>
+                        <label for="refresh_token">refresh_token</label>
+                        <input type="text" name="refresh_token" />
+                    </div>
+                    <div>
+                        <label for="error">error</label>
+                        <input type="text" name="error" />
+                    </div>
+                    <div>
+                        <textarea name="json"></textarea>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="div_introspection_request">
+            <h1>Introspection Request</h1>
+            <div>
+                <form id="introspection_request" autocomplete="off">
+                    <div>
+                        <label for="introspection_endpoint">introspection_endpoint</label>
+                        <input type="text" id="introspection_endpoint" />
+                    </div>
+                    <div>
+                        <label for="token">token</label>
+                        <input type="text" name="token" />
+                    </div>
+                    <div>
+                        <label for="client_id">client_id</label>
+                        <input type="text" name="client_id" />
+                    </div>
+                    <div>
+                        <label for="client_secret">client_secret</label>
+                        <input type="password" name="client_secret" autocomplete="off" />
+                    </div>
+                    <div>
+                        <button type="submit">Invoke Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="div_introspection_response">
+            <h1>Introspection Response</h1>
+            <div>
+                <form id="introspection_response" autocomplete="off">
+                    <div>
+                        <label for="active">active</label>
+                        <input type="text" name="active" />
+                    </div>
+                    <div>
+                        <label for="sub">sub</label>
+                        <input type="text" name="sub" />
+                    </div>
+                    <div>
+                        <label for="iss">iss</label>
+                        <input type="text" name="iss" />
+                    </div>
+                    <div>
+                        <textarea name="json"></textarea>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

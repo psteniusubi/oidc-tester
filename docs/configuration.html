@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="content-language" content="en" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="config.css" />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <style type="text/css">
+        #client_request {
+            font-family: monospace;
+            line-height: normal;
+        }
+    </style>
+    <script async type="module">
+        import { parsed } from "./modules/document-promises.js";
+        import { Configuration } from "./modules/configuration.js";
+        import { defineCustomElements } from "./modules/config.js";
+        import { http_get } from "./modules/fetch.js";
+        defineCustomElements();
+
+        const config = new Configuration("config");
+
+        function get_source() {
+            const json = document.getElementById("source").value;
+            try {
+                return JSON.parse(json);
+            } catch {
+                return {};
+            }
+        }
+
+        function set_source(json) {
+            document.getElementById("source").value = (json != null)
+                ? JSON.stringify(json, null, 2)
+                : "";
+            document.getElementById("source").dispatchEvent(new CustomEvent("input"));
+        }
+
+        function update_active() {
+            document.getElementById("active_issuer").innerText = config.get_active_issuer();
+            document.getElementById("active_client").innerText = config.get_active_client();
+        }
+
+        function add_issuer(div, item) {
+            const issuer = document.createElement("my-issuer");
+            issuer.value = item.text;
+            div.insertBefore(issuer, div.getElementsByTagName("my-add-issuer").item(0));
+            issuer.addEventListener("my-remove", () => {
+                config.remove_issuer(item.index);
+                div.removeChild(issuer);
+                update_active();
+            });
+            issuer.addEventListener("my-view", async () => {
+                document.getElementById("issuer").value = item.index;
+                set_source(await config.get_issuer_metadata(item.index));
+            });
+            issuer.addEventListener("my-add-client", () => {
+                const json = get_source();
+                if ("client_id" in json) {
+                    const t = config.add_client_metadata(item.index, json);
+                    if (t != null) {
+                        add_client(issuer, item, t);
+                    }
+                    set_source(null);
+                }
+            });
+            return issuer;
+        }
+
+        function add_client(issuer, issuerItem, clientItem) {
+            const client = document.createElement("my-client");
+            client.value = clientItem.text;
+            issuer.addClient(client);
+            client.addEventListener("my-remove", () => {
+                config.remove_client(issuerItem.index, clientItem.index);
+                issuer.removeChild(client);
+                update_active();
+            });
+            client.addEventListener("my-view", async () => {
+                document.getElementById("issuer").value = clientItem.index;
+                set_source(await config.get_client_metadata(issuerItem.index, clientItem.index));
+            });
+            client.addEventListener("my-set-active", async () => {
+                config.set_active(issuerItem.index, clientItem.index);
+                update_active();
+            });
+            return client;
+        }
+
+        async function get_issuer() {
+            document.getElementById("source").value = "";
+            document.getElementById("source").dispatchEvent(new CustomEvent("input"));
+            const uri = document.getElementById("issuer").value;
+            if (uri !== "") {
+                set_source(await http_get(uri));
+            }
+        }
+
+        async function get_openid_configuration() {
+            document.getElementById("source").value = "";
+            document.getElementById("source").dispatchEvent(new CustomEvent("input"));
+            const uri = document.getElementById("issuer").value;
+            if (uri !== "") {
+                set_source(await http_get(uri + "/.well-known/openid-configuration"));
+            }
+        }
+
+        async function content_loaded() {
+            await parsed;
+            document.getElementById("get_issuer").addEventListener("click", get_issuer);
+            document.getElementById("get_openid_configuration").addEventListener("click", get_openid_configuration);
+            document.getElementById("source").addEventListener("input", e => {
+                e.target.style = "height: auto;";
+                e.target.style = `height: ${e.target.scrollHeight}px;`;
+            });
+            const div = document.getElementById("config");
+            div.innerHTML = "";
+            for (const i of config.get_issuer_list()) {
+                const issuer = add_issuer(div, i);
+                for (const j of config.get_client_list(i.index)) {
+                    const client = add_client(issuer, i, j);
+                }
+            }
+            const add = document.createElement("my-add-issuer");
+            add.addEventListener("my-add-issuer", () => {
+                const json = get_source();
+                if ("issuer" in json) {
+                    const i = config.add_issuer_metadata(json);
+                    if (i != null) {
+                        add_issuer(div, i);
+                    }
+                    set_source(null);
+                }
+            });
+            div.appendChild(add);
+            update_active();
+            const client_request = {
+                "redirect_uris": [
+                    new URL("index.html", location.href).toString(),
+                    new URL("authorization-code-flow.html", location.href).toString(),
+                ]
+            }
+            document.getElementById("client_request").innerText = JSON.stringify(client_request, null, 2);
+        }
+
+        content_loaded();
+    </script>
+</head>
+
+<body>
+    <h1>Configuration</h1>
+    <div>Active issuer: <span id="active_issuer"></span></div>
+    <div>Active client: <span id="active_client"></span></div>
+    <div>Client configuration request:</div>
+    <div id="client_request" class="source"></div>
+    <div>
+        [<a href="index.html">index.html</a>]
+        [<a href="authorization-code-flow.html">authorization-code-flow.html</a>]
+    </div>
+    <h2>Manage</h2>
+    <div id="config"></div>
+    <div>
+        <label for="issuer">Issuer:</label>
+    </div>
+    <div>
+        <input id="issuer" type="text" placeholder="Provider name or metadata URI" style="width:100%" />
+    </div>
+    <div>
+        <button title="GET metadata from URI" id="get_issuer">GET</button>
+        <button title="GET metadata from well known URI" id="get_openid_configuration">GET openid-configuration</button>
+    </div>
+    <div>
+        <label for="source">Metadata:</label>
+    </div>
+    <div>
+        <textarea id="source" placeholder="Provider or client metadata"></textarea>
+    </div>
+</body>
+
+</html>
