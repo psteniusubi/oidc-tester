@@ -47,8 +47,9 @@ export class Configuration {
     }
     internal_get_issuer(index) {
         const json = this.get_json();
-        if (!(index in json)) return {};
-        return json[index];
+        return (index in json)
+            ? json[index]
+            : {};
     }
     get_issuer(index) {
         const issuer = this.internal_get_issuer(index);
@@ -61,8 +62,9 @@ export class Configuration {
     }
     async get_issuer_metadata(index) {
         const issuer = this.internal_get_issuer(index);
-        if ("metadata" in issuer) return issuer.metadata;
-        return {};
+        return ("metadata" in issuer)
+            ? issuer.metadata
+            : {};
     }
     remove_issuer(index) {
         const json = this.get_json();
@@ -118,18 +120,18 @@ export class Configuration {
     }
     set_active(index, client) {
         const json = this.get_json();
-        for(const i of Object.keys(json)) {            
+        for (const i of Object.keys(json)) {
             const issuer = json[i];
-            if("clients" in issuer) {
-                for(const j of Object.keys(issuer.clients)) {
+            if ("clients" in issuer) {
+                for (const j of Object.keys(issuer.clients)) {
                     delete issuer.clients[j].active;
                 }
             }
         }
-        if(index in json) {
+        if (index in json) {
             const issuer = json[index];
-            if("clients" in issuer) {
-                if(client in issuer.clients) {
+            if ("clients" in issuer) {
+                if (client in issuer.clients) {
                     issuer.clients[client].active = true;
                 }
             }
@@ -138,11 +140,11 @@ export class Configuration {
     }
     get_active_issuer() {
         const json = this.get_json();
-        for(const i of Object.keys(json)) {            
+        for (const i of Object.keys(json)) {
             const issuer = json[i];
-            if("clients" in issuer) {
-                for(const j of Object.keys(issuer.clients)) {
-                    if(issuer.clients[j].active === true) return i;
+            if ("clients" in issuer) {
+                for (const j of Object.keys(issuer.clients)) {
+                    if (issuer.clients[j].active === true) return i;
                 }
             }
         }
@@ -150,11 +152,11 @@ export class Configuration {
     }
     get_active_client() {
         const json = this.get_json();
-        for(const i of Object.keys(json)) {            
+        for (const i of Object.keys(json)) {
             const issuer = json[i];
-            if("clients" in issuer) {
-                for(const j of Object.keys(issuer.clients)) {
-                    if(issuer.clients[j].active === true) return j;
+            if ("clients" in issuer) {
+                for (const j of Object.keys(issuer.clients)) {
+                    if (issuer.clients[j].active === true) return j;
                 }
             }
         }
