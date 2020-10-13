@@ -19,19 +19,27 @@ export class Configuration {
         if (!("issuer" in metadata)) throw "invalid issuer metadata";
         const json = this.get_json();
         const issuer = metadata.issuer;
-        let r;
-        if (issuer in json) {
-            json[issuer].metadata = metadata;
-            r = false;
-        } else {
-            json[issuer] = {
-                "iat": Date.now(),
-                "metadata": metadata
-            }
+        let r = false;
+        if (!(issuer in json)) {
+            json[issuer] = {};
             r = true;
         }
+        json[issuer].metadata = metadata;
+        json[issuer].iat = Date.now();
         this.save_json(json);
-        return r ? this.get_issuer(issuer) : null;
+        // return r ? this.get_issuer(issuer) : null;
+        return r;
+    }
+    update_issuer_metadata(index, metadata) {
+        this.add_issuer_metadata(metadata);
+        if (index !== metadata.issuer) {
+            const json = this.get_json();
+            if (index in json) {
+                json[metadata.issuer].clients = json[index].clients;
+                delete json[index];
+                this.save_json(json);
+            }
+        }
     }
     get_issuer_list() {
         const json = this.get_json();
@@ -40,6 +48,7 @@ export class Configuration {
             const t = json[i];
             output.push({
                 index: i,
+                iat: t.iat,
                 text: `${t.iat} ${i}`
             });
         }
@@ -56,6 +65,7 @@ export class Configuration {
         return ("iat" in issuer)
             ? {
                 index: index,
+                iat: issuer.iat,
                 text: `${issuer.iat} ${index}`
             }
             : {};
@@ -74,20 +84,49 @@ export class Configuration {
     add_client_metadata(index, metadata) {
         if (!("client_id" in metadata)) throw "invalid client metadata";
         const json = this.get_json();
+        if (!(index in json)) return false;
         const issuer = json[index];
         if (!("clients" in issuer)) {
             issuer.clients = {};
         }
-        if (metadata.client_id in issuer.clients) {
-            return null;
+        let r = false;
+        if (!(metadata.client_id in issuer.clients)) {
+            r = true;
         }
         metadata.iat = Date.now();
         issuer.clients[metadata.client_id] = metadata;
         this.save_json(json);
-        return {
-            index: metadata.client_id,
-            text: `${metadata.iat} ${metadata.client_id}`
-        };
+        return r;
+    }
+    update_client_metadata(index, client, metadata) {
+        this.add_client_metadata(index, metadata);
+        if (client !== metadata.client_id) {
+            this.remove_client(index, client);
+        }
+    }
+    get_uri(json) {
+        if("redirect_uris" in json) {
+            return (json.redirect_uris.length > 0)
+                ? json.redirect_uris[0]
+                : "";
+        } else {
+            return "";
+        }
+    }
+    get_client(index, client) {
+        const issuer = this.internal_get_issuer(index);
+        if (!("clients" in issuer)) return {};
+        if (client in issuer.clients) {
+            const t = issuer.clients[client];
+            return {
+                index: client,
+                iat: t.iat,
+                uri: this.get_uri(t),
+                text: `${t.iat} ${client}`
+            };
+        } else {
+            return {};
+        }
     }
     get_client_list(index) {
         const issuer = this.internal_get_issuer(index);
@@ -97,6 +136,8 @@ export class Configuration {
                 const t = issuer.clients[i];
                 output.push({
                     index: i,
+                    iat: t.iat,
+                    uri: this.get_uri(t),
                     text: `${t.iat} ${i}`
                 });
             }
@@ -108,6 +149,8 @@ export class Configuration {
         if (!("clients" in issuer)) return {};
         const metadata = issuer.clients[client];
         if (!("client_id" in metadata)) return {};
+        delete metadata["iat"];
+        delete metadata["active"];
         return metadata;
     }
     remove_client(index, client) {

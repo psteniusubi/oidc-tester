@@ -59,8 +59,9 @@
             issuer.addEventListener("my-add-client", () => {
                 const json = get_source();
                 if ("client_id" in json) {
-                    const t = config.add_client_metadata(item.index, json);
-                    if (t != null) {
+                    const r = config.add_client_metadata(item.index, json);
+                    if (r === true) {
+                        const t = config.get_client(item.index, json.client_id);
                         add_client(issuer, item, t);
                     }
                     set_source(null);
@@ -127,9 +128,9 @@
             add.addEventListener("my-add-issuer", () => {
                 const json = get_source();
                 if ("issuer" in json) {
-                    const i = config.add_issuer_metadata(json);
-                    if (i != null) {
-                        add_issuer(div, i);
+                    const r = config.add_issuer_metadata(json);
+                    if (r === true) {
+                        add_issuer(div, config.get_issuer(json.issuer));
                     }
                     set_source(null);
                 }
