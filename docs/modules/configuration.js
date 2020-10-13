@@ -1,26 +1,30 @@
 import { http_get } from "./fetch.js";
 
+const isNull = (value) => (value === null) || (value === undefined);
+const isString = (value) => !isNull(value) && (typeof value === "string");
+const has = (value, name) => (isNull(value) || !isString(name)) ? false : (name in value);
+
 export class Configuration {
     constructor(name) {
         this.name = name || "config";
     }
     get_json() {
         const s = localStorage.getItem(this.name);
-        if (s == null) return {};
+        if (isNull(s)) return {};
         const json = JSON.parse(s);
         if (!Object.isExtensible(json)) return {};
         return json;
     }
     save_json(json) {
-        if (json == null) return;
+        if (isNull(json)) return;
         localStorage.setItem(this.name, JSON.stringify(json));
     }
     add_issuer_metadata(metadata) {
-        if (!("issuer" in metadata)) throw "invalid issuer metadata";
+        if (!has(metadata, "issuer")) throw "invalid issuer metadata";
         const json = this.get_json();
         const issuer = metadata.issuer;
         let r = false;
-        if (!(issuer in json)) {
+        if (!has(json, issuer)) {
             json[issuer] = {};
             r = true;
         }
@@ -34,7 +38,7 @@ export class Configuration {
         this.add_issuer_metadata(metadata);
         if (index !== metadata.issuer) {
             const json = this.get_json();
-            if (index in json) {
+            if (has(json, index)) {
                 json[metadata.issuer].clients = json[index].clients;
                 delete json[index];
                 this.save_json(json);
@@ -44,11 +48,13 @@ export class Configuration {
     get_issuer_list() {
         const json = this.get_json();
         const output = [];
+        const active = this.get_active_issuer();
         for (const i of Object.keys(json)) {
             const t = json[i];
             output.push({
                 index: i,
                 iat: t.iat,
+                active: i === active,
                 text: `${t.iat} ${i}`
             });
         }
@@ -56,23 +62,25 @@ export class Configuration {
     }
     internal_get_issuer(index) {
         const json = this.get_json();
-        return (index in json)
+        return has(json, index)
             ? json[index]
             : {};
     }
     get_issuer(index) {
         const issuer = this.internal_get_issuer(index);
-        return ("iat" in issuer)
+        const active = this.get_active_issuer();
+        return has(issuer, "iat")
             ? {
                 index: index,
                 iat: issuer.iat,
+                active: index === active,
                 text: `${issuer.iat} ${index}`
             }
             : {};
     }
     async get_issuer_metadata(index) {
         const issuer = this.internal_get_issuer(index);
-        return ("metadata" in issuer)
+        return has(issuer, "metadata")
             ? issuer.metadata
             : {};
     }
@@ -82,15 +90,15 @@ export class Configuration {
         this.save_json(json);
     }
     add_client_metadata(index, metadata) {
-        if (!("client_id" in metadata)) throw "invalid client metadata";
+        if (!has(metadata, "client_id")) throw "invalid client metadata";
         const json = this.get_json();
-        if (!(index in json)) return false;
+        if (!has(json, index)) return false;
         const issuer = json[index];
-        if (!("clients" in issuer)) {
+        if (!has(issuer, "clients")) {
             issuer.clients = {};
         }
         let r = false;
-        if (!(metadata.client_id in issuer.clients)) {
+        if (!has(issuer.clients, metadata.client_id)) {
             r = true;
         }
         metadata.iat = Date.now();
@@ -105,7 +113,7 @@ export class Configuration {
         }
     }
     get_uri(json) {
-        if("redirect_uris" in json) {
+        if (has(json, "redirect_uris")) {
             return (json.redirect_uris.length > 0)
                 ? json.redirect_uris[0]
                 : "";
@@ -115,13 +123,14 @@ export class Configuration {
     }
     get_client(index, client) {
         const issuer = this.internal_get_issuer(index);
-        if (!("clients" in issuer)) return {};
-        if (client in issuer.clients) {
+        if (!has(issuer, "clients")) return {};
+        if (has(issuer.clients, client)) {
             const t = issuer.clients[client];
             return {
                 index: client,
                 iat: t.iat,
                 uri: this.get_uri(t),
+                active: t.active === true,
                 text: `${t.iat} ${client}`
             };
         } else {
@@ -131,13 +140,14 @@ export class Configuration {
     get_client_list(index) {
         const issuer = this.internal_get_issuer(index);
         const output = [];
-        if ("clients" in issuer) {
+        if (has(issuer, "clients")) {
             for (const i of Object.keys(issuer.clients)) {
                 const t = issuer.clients[i];
                 output.push({
                     index: i,
                     iat: t.iat,
                     uri: this.get_uri(t),
+                    active: t.active === true,
                     text: `${t.iat} ${i}`
                 });
             }
@@ -146,18 +156,18 @@ export class Configuration {
     }
     async get_client_metadata(index, client) {
         const issuer = this.internal_get_issuer(index);
-        if (!("clients" in issuer)) return {};
+        if (!has(issuer, "clients")) return {};
         const metadata = issuer.clients[client];
-        if (!("client_id" in metadata)) return {};
+        if (!has(metadata, "client_id")) return {};
         delete metadata["iat"];
         delete metadata["active"];
         return metadata;
     }
     remove_client(index, client) {
         const json = this.get_json();
-        if (!(index in json)) return;
+        if (!has(json, index)) return;
         const issuer = json[index];
-        if (!("clients" in issuer)) return;
+        if (!has(issuer, "clients")) return;
         delete issuer.clients[client];
         this.save_json(json);
     }
@@ -165,16 +175,16 @@ export class Configuration {
         const json = this.get_json();
         for (const i of Object.keys(json)) {
             const issuer = json[i];
-            if ("clients" in issuer) {
+            if (has(issuer, "clients")) {
                 for (const j of Object.keys(issuer.clients)) {
                     delete issuer.clients[j].active;
                 }
             }
         }
-        if (index in json) {
+        if (has(json, index)) {
             const issuer = json[index];
-            if ("clients" in issuer) {
-                if (client in issuer.clients) {
+            if (has(issuer, "clients")) {
+                if (has(issuer.clients, client)) {
                     issuer.clients[client].active = true;
                 }
             }
@@ -185,7 +195,7 @@ export class Configuration {
         const json = this.get_json();
         for (const i of Object.keys(json)) {
             const issuer = json[i];
-            if ("clients" in issuer) {
+            if (has(issuer, "clients")) {
                 for (const j of Object.keys(issuer.clients)) {
                     if (issuer.clients[j].active === true) return i;
                 }
@@ -197,7 +207,7 @@ export class Configuration {
         const json = this.get_json();
         for (const i of Object.keys(json)) {
             const issuer = json[i];
-            if ("clients" in issuer) {
+            if (has(issuer, "clients")) {
                 for (const j of Object.keys(issuer.clients)) {
                     if (issuer.clients[j].active === true) return j;
                 }
@@ -205,4 +215,12 @@ export class Configuration {
         }
         return null;
     }
+    // is_active(index, client) {
+    //     const json = this.get_json();
+    //     return has(json, index)
+    //         && has(json[index], "clients")
+    //         && has(json[index].clients, client)
+    //         && has(json[index].clients[client], "active")
+    //         && (json[index].clients[client] === true);
+    // }
 }
