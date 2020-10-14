@@ -97,13 +97,24 @@ export class Configuration {
         if (!has(issuer, "clients")) {
             issuer.clients = {};
         }
-        let r = false;
-        if (!has(issuer.clients, metadata.client_id)) {
+        let r;
+        let active = false;
+        if (has(issuer.clients, metadata.client_id)) {
+            // update
+            r = false;
+            if(has(issuer.clients[metadata.client_id], "active")) {
+                active = issuer.clients[metadata.client_id].active;
+            }
+        } else {
+            // new
             r = true;
         }
         metadata.iat = Date.now();
         issuer.clients[metadata.client_id] = metadata;
         this.save_json(json);
+        if(active === true) {
+            this.set_active(index, metadata.client_id);
+        }
         return r;
     }
     update_client_metadata(index, client, metadata) {
