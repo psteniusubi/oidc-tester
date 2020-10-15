@@ -1,5 +1,3 @@
-import { http_get } from "./fetch.js";
-
 const isNull = (value) => (value === null) || (value === undefined);
 const isString = (value) => !isNull(value) && (typeof value === "string");
 const has = (value, name) => (isNull(value) || !isString(name)) ? false : (name in value);
