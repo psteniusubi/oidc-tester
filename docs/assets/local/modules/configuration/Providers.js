@@ -77,11 +77,10 @@ export class Providers {
         this.build_table();
         this.form.elements["add"].addEventListener("click", e => {
             e.preventDefault();
-            const selected = this.selected;
             const idp = new NewProvider("idp-dialog");
             idp.onsubmit(e => {
                 const json = e.detail.dialog.get_metadata_json();
-                this.config.update_issuer_metadata(selected, json);
+                this.config.add_issuer_metadata(json);
                 this.build_table();
                 this.selected = json.issuer;
                 this.dispatch_click(json.issuer);
