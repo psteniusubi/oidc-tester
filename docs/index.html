@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>OpenID Connect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <link rel="stylesheet" type="text/css" href="../assets/common/styles/ubisecure.css" referrerpolicy="no-referrer" />
+    <style type="text/css">
+        :root {
+            --font-size: 12pt;
+            --grid-main-area-width: minmax(auto, 72em);
+        }
+    </style>
+    <script async type="module">
+        import { parsed } from "../assets/common/modules/document-promises.js";
+        import { create_repository_menu, set_button_href_handlers } from "../assets/common/modules/helper-module.js";
+        async function build_page() {
+            await parsed;
+            await create_repository_menu();
+            await set_button_href_handlers();
+        }
+        build_page();
+    </script>
+</head>
+
+<body>
+
+    <header>
+        <nav>
+            <button href="./index.html" target="_self">
+                <icon class="home"></icon>&nbsp;<span>Home</span>
+            </button>
+            <button href="authorization-code-flow.html" target="_self">Tester</button>
+            <button href="configuration.html" target="_self">Configuration</button>
+            <div>
+                <button>
+                    <span>Repositories</span>&nbsp;<icon class="arrow-drop-down"></icon>                    
+                </button>
+                <div id="repository_menu">
+                    <button href="https://github.com/psteniusubi?tab=repositories">All Repositories</button>
+                </div>
+            </div>
+        </nav>
+        <nav>
+            <button href="https://ubisecure.com" class="ubisecure-standard-logo-h-reverse">&nbsp;</button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="outline">
+            <h1>OpenID Connect Tester</h1>
+            <div>
+                <ul>
+                    <li><a href="configuration.html">Manage identity providers and client registrations</a></li>
+                    <li><a href="authorization-code-flow.html">Test authorization code flow</a></li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+</body>
+
+</html>

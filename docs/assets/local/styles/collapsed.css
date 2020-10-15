@@ -1,0 +1,11 @@
+section.collapsed > label {
+    display: block;
+}
+
+section.collapsed > input[type="checkbox"]:checked ~ section {
+    display: none;
+}
+
+section.collapsed > input[type="checkbox"] {
+    display: none;
+}

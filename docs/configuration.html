@@ -1,183 +1,221 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta name="referrer" content="no-referrer" />
-    <meta http-equiv="content-language" content="en" />
-    <link rel="icon" type="image/png" href="../assets/common/images/favicon.png" />
-    <link rel="stylesheet" type="text/css" href="./assets/local/styles/config.css" />
-    <link rel="stylesheet" type="text/css" href="./assets/local/styles/style.css" />
+    <title>OpenID Connect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <link rel="stylesheet" type="text/css" href="../assets/common/styles/ubisecure.css" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" type="text/css" href="../assets/common/styles/ModalDialog.css" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" type="text/css" href="./assets/local/styles/collapsed.css" referrerpolicy="no-referrer" />
     <style type="text/css">
-        #client_request {
+        :root {
+            --font-size: 12pt;
+            --grid-main-area-width: minmax(auto, 72em);
+        }
+
+        table th:first-of-type,
+        table td:first-of-type {
+            width: 2em;
+            text-align: center;
+            padding-right: 0;
+        }
+
+        tr.active td:first-of-type::after {
+            font-family: 'Material Icons';
+            content: "check";
+        }
+
+        td {
+            line-height: 1.25em;
+            height: 2em;
+            vertical-align: middle;
+        }
+
+        form textarea[name='metadata'] {
+            white-space: pre;
+            word-wrap: normal;
+            word-break: normal;
+            overflow-x: hidden;
+            overflow-y: scroll;
             font-family: monospace;
-            line-height: normal;
+            resize: vertical;
+            height: 15em;
         }
     </style>
     <script async type="module">
         import { parsed } from "../assets/common/modules/document-promises.js";
-        import { Configuration } from "./assets/local/modules/configuration.js";
-        import { defineCustomElements } from "./assets/local/modules/config.js";
-        import { http_get } from "../assets/common/modules/fetch.js";
-        defineCustomElements();
-
-        const config = new Configuration("config");
-
-        function get_source() {
-            const json = document.getElementById("source").value;
-            try {
-                return JSON.parse(json);
-            } catch {
-                return {};
-            }
-        }
-
-        function set_source(json) {
-            document.getElementById("source").value = (json != null)
-                ? JSON.stringify(json, null, 2)
-                : "";
-            document.getElementById("source").dispatchEvent(new CustomEvent("input"));
-        }
-
-        function update_active() {
-            document.getElementById("active_issuer").innerText = config.get_active_issuer();
-            document.getElementById("active_client").innerText = config.get_active_client();
-        }
-
-        function add_issuer(div, item) {
-            const issuer = document.createElement("my-issuer");
-            issuer.value = item.text;
-            div.insertBefore(issuer, div.getElementsByTagName("my-add-issuer").item(0));
-            issuer.addEventListener("my-remove", () => {
-                config.remove_issuer(item.index);
-                div.removeChild(issuer);
-                update_active();
-            });
-            issuer.addEventListener("my-view", async () => {
-                document.getElementById("issuer").value = item.index;
-                set_source(await config.get_issuer_metadata(item.index));
-            });
-            issuer.addEventListener("my-add-client", () => {
-                const json = get_source();
-                if ("client_id" in json) {
-                    const r = config.add_client_metadata(item.index, json);
-                    if (r === true) {
-                        const t = config.get_client(item.index, json.client_id);
-                        add_client(issuer, item, t);
-                    }
-                    set_source(null);
-                }
-            });
-            return issuer;
-        }
-
-        function add_client(issuer, issuerItem, clientItem) {
-            const client = document.createElement("my-client");
-            client.value = clientItem.text;
-            issuer.addClient(client);
-            client.addEventListener("my-remove", () => {
-                config.remove_client(issuerItem.index, clientItem.index);
-                issuer.removeChild(client);
-                update_active();
-            });
-            client.addEventListener("my-view", async () => {
-                document.getElementById("issuer").value = clientItem.index;
-                set_source(await config.get_client_metadata(issuerItem.index, clientItem.index));
-            });
-            client.addEventListener("my-set-active", async () => {
-                config.set_active(issuerItem.index, clientItem.index);
-                update_active();
-            });
-            return client;
-        }
-
-        async function get_issuer() {
-            document.getElementById("source").value = "";
-            document.getElementById("source").dispatchEvent(new CustomEvent("input"));
-            const uri = document.getElementById("issuer").value;
-            if (uri !== "") {
-                set_source(await http_get(uri));
-            }
-        }
-
-        async function get_openid_configuration() {
-            document.getElementById("source").value = "";
-            document.getElementById("source").dispatchEvent(new CustomEvent("input"));
-            const uri = document.getElementById("issuer").value;
-            if (uri !== "") {
-                set_source(await http_get(uri + "/.well-known/openid-configuration"));
-            }
-        }
-
-        async function content_loaded() {
+        import { create_repository_menu, set_button_href_handlers, set_table_select_handlers } from "../assets/common/modules/helper-module.js";
+        import { ModalDialog } from "../assets/common/modules/ModalDialog.js";
+        import { NewProvider } from "./assets/local/modules/configuration/NewProvider.js";
+        import { NewClient } from "./assets/local/modules/configuration/NewClient.js";
+        import { Configuration } from "/oidc-tester/assets/local/modules/Configuration.js";
+        import { Providers } from "./assets/local/modules/configuration/Providers.js";
+        import { Clients } from "./assets/local/modules/configuration/Clients.js";
+        const configuration = new Configuration();
+        const providers = new Providers(configuration, "idp");
+        const clients = new Clients(configuration, "client", providers);
+        async function build_page() {
             await parsed;
-            document.getElementById("get_issuer").addEventListener("click", get_issuer);
-            document.getElementById("get_openid_configuration").addEventListener("click", get_openid_configuration);
-            document.getElementById("source").addEventListener("input", e => {
-                e.target.style = "height: auto;";
-                e.target.style = `height: ${e.target.scrollHeight}px;`;
-            });
-            const div = document.getElementById("config");
-            div.innerHTML = "";
-            for (const i of config.get_issuer_list()) {
-                const issuer = add_issuer(div, i);
-                for (const j of config.get_client_list(i.index)) {
-                    const client = add_client(issuer, i, j);
-                }
-            }
-            const add = document.createElement("my-add-issuer");
-            add.addEventListener("my-add-issuer", () => {
-                const json = get_source();
-                if ("issuer" in json) {
-                    const r = config.add_issuer_metadata(json);
-                    if (r === true) {
-                        add_issuer(div, config.get_issuer(json.issuer));
-                    }
-                    set_source(null);
-                }
-            });
-            div.appendChild(add);
-            update_active();
-            const client_request = {
-                "redirect_uris": [
-                    new URL("index.html", location.href).toString(),
-                    new URL("authorization-code-flow.html", location.href).toString(),
-                ]
-            }
-            document.getElementById("client_request").innerText = JSON.stringify(client_request, null, 2);
+            await set_button_href_handlers();
+            document.querySelectorAll("table.select").forEach(set_table_select_handlers);
+            providers.build();
+            providers.selected = configuration.get_active_issuer();
+            clients.build();
+            clients.selected = configuration.get_active_client();
         }
-
-        content_loaded();
+        build_page();
     </script>
 </head>
 
 <body>
-    <h1>Configuration</h1>
-    <div>Active issuer: <span id="active_issuer"></span></div>
-    <div>Active client: <span id="active_client"></span></div>
-    <div>Client configuration request:</div>
-    <div id="client_request" class="source"></div>
-    <div>
-        [<a href="index.html">index.html</a>]
-        [<a href="authorization-code-flow.html">authorization-code-flow.html</a>]
-    </div>
-    <h2>Manage</h2>
-    <div id="config"></div>
-    <div>
-        <label for="issuer">Issuer:</label>
-    </div>
-    <div>
-        <input id="issuer" type="text" placeholder="Provider name or metadata URI" style="width:100%" />
-    </div>
-    <div>
-        <button title="GET metadata from URI" id="get_issuer">GET</button>
-        <button title="GET metadata from well known URI" id="get_openid_configuration">GET openid-configuration</button>
-    </div>
-    <div>
-        <label for="source">Metadata:</label>
-    </div>
-    <div>
-        <textarea id="source" placeholder="Provider or client metadata"></textarea>
-    </div>
+
+    <header>
+        <nav>
+            <button href="./index.html" target="_self">
+                <icon class="home"></icon>&nbsp;<span>Home</span>
+            </button>
+            <button href="authorization-code-flow.html" target="_self">Tester</button>
+            <button href="configuration.html" target="_self">Configuration</button>
+        </nav>
+        <nav>
+            <button href="https://ubisecure.com" class="ubisecure-standard-logo-h-reverse">&nbsp;</button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="outline" id="idp">
+            <h1>Identity Provider</h1>
+            <section class="scroll">
+                <table class="hover select">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Instant</th>
+                            <th>Issuer</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+            <form>
+                <div>
+                    <button type="button" name="add">New</button>
+                    <button type="button" name="edit">Edit</button>
+                    <button type="button" name="remove">Remove</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="outline" id="client">
+            <h2>Client</h2>
+            <section class="scroll">
+                <table class="hover select">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Instant</th>
+                            <th>Uri</th>
+                            <th>Id</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+            <section>
+                <form>
+                    <div>
+                        <button type="button" name="add">New</button>
+                        <button type="button" name="edit">Edit</button>
+                        <button type="button" name="active">Set Active</button>
+                        <button type="button" name="remove">Remove</button>
+                    </div>
+                </form>
+            </section>
+        </section>
+    </main>
+
 </body>
+
+<template id="idp-dialog">
+    <section class="outline">
+        <h2>Identity Provider</h2>
+        <form>
+            <div><input class="flex1" type="text" placeholder="Issuer" name="issuer" /></div>
+            <div>
+                <button type="button" name="fetch">
+                    <icon>cloud_download</icon>&nbsp;<span>Fetch metadata</span>
+                </button>
+                <button type="button" name="paste">
+                    <icon>content_paste</icon>&nbsp;<span>Paste from Clipboard</span>
+                </button>
+                <button type="button" name="clear">
+                    <icon>clear</icon>&nbsp;<span>Clear</span>
+                </button>
+            </div>
+            <div><textarea class="flex1" placeholder="Metadata" name="metadata"></textarea></div>
+            <label>
+                <span>authorization_endpoint</span>
+                <input class="flex1" type="text" placeholder="authorization_endpoint" name="authorization_endpoint" />
+            </label>
+            <label>
+                <span>token_endpoint</span>
+                <input class="flex1" type="text" placeholder="token_endpoint" name="token_endpoint" />
+            </label>
+            <label>
+                <span>userinfo_endpoint</span>
+                <input class="flex1" type="text" placeholder="userinfo_endpoint" name="userinfo_endpoint" />
+            </label>
+            <label>
+                <span>introspection_endpoint</span>
+                <input class="flex1" type="text" placeholder="introspection_endpoint" name="introspection_endpoint" />
+            </label>
+            </div>
+            <div>
+                <button type="submit">OK</button>
+                <button type="reset">Close</button>
+            </div>
+        </form>
+    </section>
+</template>
+
+<template id="client-dialog">
+    <section class="outline">
+        <h2>Client</h2>
+        <form>
+            <div>
+                <button type="button" name="copy">
+                    <icon>content_copy</icon>&nbsp;<span>Copy to Clipboard</span>
+                </button>
+                <button type="button" name="paste">
+                    <icon>content_paste</icon>&nbsp;<span>Paste from Clipboard</span>
+                </button>
+                <button type="button" name="clear">
+                    <icon>clear</icon>&nbsp;<span>Clear</span>
+                </button>
+            </div>
+            <div><textarea class="flex1" placeholder="Metadata" name="metadata"></textarea></div>
+            <label>
+                <span>redirect_uris</span>
+                <input class="flex1" type="text" placeholder="redirect_uris" name="redirect_uris" />
+            </label>
+            <label>
+                <span>scope</span>
+                <input class="flex1" type="text" placeholder="scope" name="scope" />
+            </label>
+            <label>
+                <span>client_id</span>
+                <input class="flex1" type="text" placeholder="client_id" name="client_id" />
+            </label>
+            <label>
+                <span>client_secret</span>
+                <input class="flex1" type="text" placeholder="client_secret" name="client_secret" />
+            </label>
+            <div>
+                <button type="submit">OK</button>
+                <button type="reset">Close</button>
+            </div>
+        </form>
+    </section>
+</template>
 
 </html>
