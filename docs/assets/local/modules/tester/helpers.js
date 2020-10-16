@@ -1,15 +1,20 @@
 import { btoaUrlSafe } from "../../../common/modules/base64url.js";
 
+const isNull = (value) => (value === null) || (value === undefined);
+
 function hide_all_sections() {
     document.querySelectorAll("section.collapsed > input[type='checkbox']:not(:checked)")
         .forEach(t => t.checked = true);
 }
 function toggle_section(id, value) {
+    console.log(`toggle_section(${id},${value === true})`);
     const checkbox = document.getElementById(id).querySelector("section > input[type='checkbox']");
-    checkbox.checked = value;
+    // checkbox checked = false - visible
+    // checkbox checked = true - hidden
+    checkbox.checked = !(value === true);
 }
-const show_section = id => toggle_section(id, false);
-const hide_section = id => toggle_section(id, true);
+const show_section = id => toggle_section(id, true);
+const hide_section = id => toggle_section(id, false);
 function focus_submit(form) {
     form.querySelector("button[type='submit']").scrollIntoView();
     form.querySelector("button[type='submit']").focus();
@@ -17,14 +22,23 @@ function focus_submit(form) {
 
 function get_form_value(id, name) {
     const form = document.getElementById(id).querySelector("form");
-    if (form == null) {
+    if (isNull(form)) {
         return null;
     }
     const element = form.elements[name];
-    if (element == null) {
+    if (isNull(element)) {
         return null;
     }
     return element.value;
+}
+
+function is_form_valid(id) {
+    const form = document.getElementById(id).querySelector("form");
+    if (isNull(form)) {
+        return false;
+    }
+    return (form.querySelector("input") !== null)
+        && (form.querySelector("input:invalid") === null);
 }
 
 function create_form_input(name, value) {
@@ -61,7 +75,7 @@ function escapeRegExp(string) {
 }
 
 function redirect_uri_pattern(client) {
-    if (client === null || !("redirect_uris" in client)) return "";
+    if (isNull(client) || !("redirect_uris" in client)) return "";
     const pattern = client.redirect_uris
         .map(t => `(${escapeRegExp(t)})`)
         .join("|");
@@ -69,8 +83,15 @@ function redirect_uri_pattern(client) {
 }
 
 function redirect_uri_title(client) {
-    if (client === null || !("redirect_uris" in client)) return "";
+    if (isNull(client) || !("redirect_uris" in client)) return "";
     return JSON.stringify({ redirect_uris: client.redirect_uris }, null, 2);
 }
 
-export { hide_all_sections, show_section, hide_section, get_form_value, create_form_input, remove_empty_values, random_text, redirect_uri_pattern, redirect_uri_title };
+export {
+    hide_all_sections, toggle_section, show_section, hide_section,
+    get_form_value, is_form_valid,
+    create_form_input,
+    remove_empty_values,
+    random_text,
+    redirect_uri_pattern, redirect_uri_title
+};

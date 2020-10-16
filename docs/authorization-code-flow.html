@@ -12,8 +12,10 @@
             --font-size: 12pt;
             --grid-main-area-width: minmax(auto, 72em);
         }
-        input:invalid {
-            background-color: salmon;
+
+        section>form input:invalid {
+            outline: 2px solid salmon;
+            outline-offset: -2px;
         }
     </style>
     <script async type="module">
@@ -21,31 +23,38 @@
         import { create_repository_menu, set_button_href_handlers, set_table_select_handlers } from "../assets/common/modules/helper-module.js";
         import { Configuration } from "./assets/local/modules/configuration.js";
         import { http_get, http_post } from "../assets/common/modules/fetch.js";
-        import { hide_all_sections, show_section, hide_section, get_form_value, create_form_input } from "./assets/local/modules/tester/helpers.js";
-        import { build_authorization_request, build_authorization_response } from "./assets/local/modules/tester/Authorization.js";
-        import { build_token_request, build_token_response } from "./assets/local/modules/tester/AccessToken.js";
-        import { build_id_token, build_id_token_decoded } from "./assets/local/modules/tester/IdToken.js";
-        import { build_introspection_request, build_introspection_response } from "./assets/local/modules/tester/Introspection.js";
-        import { build_userinfo_request, build_userinfo_response } from "./assets/local/modules/tester/UserInfo.js";
+        import { hide_all_sections, toggle_section, show_section, hide_section, get_form_value, create_form_input } from "./assets/local/modules/tester/helpers.js";
+        import { Authorization } from "./assets/local/modules/tester/Authorization.js";
+        import { AccessToken } from "./assets/local/modules/tester/AccessToken.js";
+        import { IdToken } from "./assets/local/modules/tester/IdToken.js";
+        import { Introspection } from "./assets/local/modules/tester/Introspection.js";
+        import { UserInfo } from "./assets/local/modules/tester/UserInfo.js";
         const configuration = new Configuration();
+        const authorization = new Authorization(configuration);
+        const access_token = new AccessToken(configuration);
+        const id_token = new IdToken(configuration);
+        const introspection = new Introspection(configuration);
+        const userinfo = new UserInfo(configuration);
         async function build_page() {
             await parsed;
-            hide_all_sections();
-            show_section("authorization_request");
             await set_button_href_handlers();
-            if (! await build_authorization_request(configuration)) {
-                return;
-            }
-            if (await build_authorization_response()) {
-                show_section("authorization_response");
-            }
-            if (await build_token_request(configuration)) {
-                hide_section("authorization_request");
-                show_section("token_request");
-            }
-            await build_id_token(configuration);
-            await build_introspection_request(configuration);
-            await build_userinfo_request(configuration);
+            await authorization.bind();
+            await access_token.bind();
+            await id_token.bind();
+            await introspection.bind();
+            await userinfo.bind();
+
+            await authorization.init_request();
+            authorization.request.toggle(true);
+
+            const search = location.search;
+            history.replaceState(null, null, location.pathname);
+            await authorization.init_response(search, true);
+
+            await access_token.init_request();
+            await id_token.init_request();
+            await introspection.init_request();
+            await userinfo.init_request();
         }
         build_page();
     </script>
@@ -69,22 +78,23 @@
     <main>
         <section class="outline">
             <section id="authorization_request" class="collapsed">
-                <input type="checkbox" id="authorization_request_hide" />
+                <input type="checkbox" id="authorization_request_hide" checked />
                 <h2><label for="authorization_request_hide">Authorization Request</label></h2>
                 <section>
                     <form autocomplete="off" novalidate>
                         <label>
                             <span>authorization_endpoint</span>
                             <input class="flex1" type="text" placeholder="authorization_endpoint"
-                                name="authorization_endpoint" />
+                                name="authorization_endpoint" required />
                         </label>
                         <label>
                             <span>response_type</span>
-                            <input class="flex1" type="text" placeholder="response_type" name="response_type" />
+                            <input class="flex1" type="text" placeholder="response_type" name="response_type"
+                                required />
                         </label>
                         <label>
                             <span>client_id</span>
-                            <input class="flex1" type="text" placeholder="client_id" name="client_id" />
+                            <input class="flex1" type="text" placeholder="client_id" name="client_id" required />
                         </label>
                         <label>
                             <span>redirect_uri</span>
@@ -165,15 +175,16 @@
                     <form autocomplete="off" novalidate>
                         <label>
                             <span>token_endpoint</span>
-                            <input class="flex1" type="text" placeholder="token_endpoint" name="token_endpoint" />
+                            <input class="flex1" type="text" placeholder="token_endpoint" name="token_endpoint"
+                                required />
                         </label>
                         <label>
                             <span>grant_type</span>
-                            <input class="flex1" type="text" placeholder="grant_type" name="grant_type" />
+                            <input class="flex1" type="text" placeholder="grant_type" name="grant_type" required />
                         </label>
                         <label>
                             <span>code</span>
-                            <input class="flex1" type="text" placeholder="code" name="code" />
+                            <input class="flex1" type="text" placeholder="code" name="code" required />
                         </label>
                         <label>
                             <span>code_verifier</span>
@@ -185,7 +196,7 @@
                         </label>
                         <label>
                             <span>client_id</span>
-                            <input class="flex1" type="text" placeholder="client_id" name="client_id" />
+                            <input class="flex1" type="text" placeholder="client_id" name="client_id" required />
                         </label>
                         <label>
                             <span>client_secret</span>
@@ -216,11 +227,11 @@
                     <form autocomplete="off">
                         <label>
                             <span>jwks_uri</span>
-                            <input class="flex1" type="text" placeholder="jwks_uri" name="jwks_uri" />
+                            <input class="flex1" type="text" placeholder="jwks_uri" name="jwks_uri" required />
                         </label>
                         <label>
                             <span>id_token</span>
-                            <input class="flex1" type="text" placeholder="id_token" name="id_token" />
+                            <input class="flex1" type="text" placeholder="id_token" name="id_token" required />
                         </label>
                         <div>
                             <button type="submit">Decode</button>
@@ -248,15 +259,15 @@
                         <label>
                             <span>introspection_endpoint</span>
                             <input class="flex1" type="text" placeholder="introspection_endpoint"
-                                name="introspection_endpoint" />
+                                name="introspection_endpoint" required />
                         </label>
                         <label>
                             <span>token</span>
-                            <input class="flex1" type="text" placeholder="token" name="token" />
+                            <input class="flex1" type="text" placeholder="token" name="token" required />
                         </label>
                         <label>
                             <span>client_id</span>
-                            <input class="flex1" type="text" placeholder="client_id" name="client_id" />
+                            <input class="flex1" type="text" placeholder="client_id" name="client_id" required />
                         </label>
                         <label>
                             <span>client_secret</span>
@@ -287,11 +298,12 @@
                     <form autocomplete="off">
                         <label>
                             <span>userinfo_endpoint</span>
-                            <input class="flex1" type="text" placeholder="userinfo_endpoint" name="userinfo_endpoint" />
+                            <input class="flex1" type="text" placeholder="userinfo_endpoint" name="userinfo_endpoint"
+                                required />
                         </label>
                         <label>
                             <span>access_token</span>
-                            <input class="flex1" type="text" placeholder="access_token" name="access_token" />
+                            <input class="flex1" type="text" placeholder="access_token" name="access_token" required />
                         </label>
                         <div>
                             <button type="submit" name="get">GET</button>
