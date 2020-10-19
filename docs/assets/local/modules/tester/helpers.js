@@ -7,7 +7,6 @@ function hide_all_sections() {
         .forEach(t => t.checked = true);
 }
 function toggle_section(id, value) {
-    console.log(`toggle_section(${id},${value === true})`);
     const checkbox = document.getElementById(id).querySelector("section > input[type='checkbox']");
     // checkbox checked = false - visible
     // checkbox checked = true - hidden
