@@ -90,11 +90,10 @@ export class Clients {
         });
         this.form.elements["add"].addEventListener("click", e => {
             e.preventDefault();
-            const selected = this.selected;
             const client = new NewClient("client-dialog");
             client.onsubmit(e => {
                 const json = e.detail.dialog.get_metadata_json();
-                this.config.update_client_metadata(this.issuer, selected, json);
+                this.config.add_client_metadata(this.issuer, json);
                 this.build_table();
                 this.selected = json.client_id;
                 this.update_active();
