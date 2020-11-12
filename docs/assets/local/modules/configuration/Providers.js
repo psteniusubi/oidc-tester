@@ -72,21 +72,27 @@ export class Providers {
             this.table.querySelectorAll(`tr[data-index="${issuer}"]`).forEach(t => t.classList.add("active"));
         }
     }
+    async add_provider_dialog(metadata) {
+        const idp = new NewProvider("idp-dialog");
+        idp.onsubmit(e => {
+            const json = e.detail.dialog.get_metadata_json();
+            this.config.add_issuer_metadata(json);
+            this.build_table();
+            this.selected = json.issuer;
+            this.dispatch_click(json.issuer);
+            e.detail.close();
+        })
+        await idp.open();
+        if (metadata !== null && metadata !== undefined) {
+            idp.set_metadata(JSON.stringify(metadata, null, 2), true);
+        }
+    }
     build() {
         this.table.addEventListener("click", e => this.click(e));
         this.build_table();
         this.form.elements["add"].addEventListener("click", e => {
             e.preventDefault();
-            const idp = new NewProvider("idp-dialog");
-            idp.onsubmit(e => {
-                const json = e.detail.dialog.get_metadata_json();
-                this.config.add_issuer_metadata(json);
-                this.build_table();
-                this.selected = json.issuer;
-                this.dispatch_click(json.issuer);
-                e.detail.close();
-            })
-            idp.open();
+            this.add_provider_dialog();
         });
         this.form.elements["edit"].addEventListener("click", async e => {
             e.preventDefault();

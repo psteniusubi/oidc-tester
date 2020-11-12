@@ -7,7 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <link rel="icon" href="../assets/common/images/favicon.png" referrerpolicy="no-referrer" />
     <link rel="stylesheet" type="text/css" href="../assets/common/styles/ubisecure.css" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" type="text/css" href="../assets/common/styles/ModalDialog.css" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" type="text/css" href="../assets/common/styles/ModalDialog.css"
+        referrerpolicy="no-referrer" />
     <link rel="stylesheet" type="text/css" href="./assets/local/styles/collapsed.css" referrerpolicy="no-referrer" />
     <style type="text/css">
         :root {
@@ -60,10 +61,20 @@
             await parsed;
             await set_button_href_handlers();
             document.querySelectorAll("table.select").forEach(set_table_select_handlers);
+
             providers.build();
             providers.selected = configuration.get_active_issuer();
+
             clients.build();
             clients.selected = configuration.get_active_client();
+
+            const query = new URLSearchParams(location.search);
+            if (query.has("issuer")) {
+                history.replaceState(null, null, location.pathname);
+                providers.add_provider_dialog({
+                    "issuer": query.get("issuer")
+                })
+            }
         }
         build_page();
     </script>
