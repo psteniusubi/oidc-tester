@@ -16,17 +16,31 @@ export class NewClient extends ModalDialog {
     async create_popup(section) {
         await super.create_popup(section);
         const form = section.querySelector("form");
-        form.elements["copy"].addEventListener("click", async e => {
-            await navigator.clipboard.writeText(form.elements["metadata"].value);
-        });
-        form.elements["paste"].addEventListener("click", async e => {
-            const text = await navigator.clipboard.readText();
-            if (text !== "") {
-                this.set_metadata(text, true);
-            }
-        });
+        if ("writeText" in navigator.clipboard) {
+            form.elements["copy"].addEventListener("click", async e => {
+                this.form.elements["metadata"].focus();
+                this.form.elements["metadata"].select();
+                await navigator.clipboard.writeText(form.elements["metadata"].value);
+            });
+        } else {
+            const e = form.elements["copy"];
+            e.parentNode.removeChild(e);
+        }
+        if ("readText" in navigator.clipboard) {
+            form.elements["paste"].addEventListener("click", async e => {
+                const text = await navigator.clipboard.readText();
+                if (text !== "") {
+                    this.set_metadata(text, true);
+                }
+            });
+        } else {
+            const e = form.elements["paste"];
+            e.parentNode.removeChild(e);
+        }
         form.elements["clear"].addEventListener("click", async e => {
             this.set_metadata("{}", true);
+            this.form.elements["metadata"].focus();
+            this.form.elements["metadata"].select();
         });
         form.addEventListener("input", e => {
             if (e.target instanceof HTMLInputElement) {

@@ -29,14 +29,23 @@ export class NewProvider extends ModalDialog {
             this.set_metadata(JSON.stringify(json, null, 2));
             this.json_to_form(json);
         });
-        form.elements["paste"].addEventListener("click", async e => {
-            const text = await navigator.clipboard.readText();
-            if (text !== "") {
-                this.set_metadata(text, true);
-            }
-        });
+        if ("readText" in navigator.clipboard) {
+            form.elements["paste"].addEventListener("click", async e => {
+                if ("readText" in navigator.clipboard) {
+                    const text = await navigator.clipboard.readText();
+                    if (text !== "") {
+                        this.set_metadata(text, true);
+                    }
+                }
+            });
+        } else {
+            const e = form.elements["paste"];
+            e.parentNode.removeChild(e);
+        }
         form.elements["clear"].addEventListener("click", async e => {
             this.set_metadata("{}", true);
+            this.form.elements["metadata"].focus();
+            this.form.elements["metadata"].select();
         });
         form.addEventListener("input", e => {
             if (e.target instanceof HTMLInputElement) {
