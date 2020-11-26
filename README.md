@@ -8,7 +8,7 @@ https://psteniusubi.github.io/oidc-tester
 
 This browser based app requires CORS support from the OpenID Connect provider for the Token Endpoint. Most providers will support CORS but there are some exceptions.
 
-There is no backend. Browser's [local storage](https://html.spec.whatwg.org/multipage/webstorage.html#webstorage) is used to store any configuration information.
+There is no backend. Browser's [local storage](https://html.spec.whatwg.org/multipage/webstorage.html#webstorage) is used to store any configuration information such as provider metadata and client credentials.
 
 # Registering OpenID Connect provider
 
