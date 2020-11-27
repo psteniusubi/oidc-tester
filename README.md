@@ -47,7 +47,7 @@ Navigate to [Tester](https://psteniusubi.github.io/oidc-tester/authorization-cod
 
 ## Token Request
 
-## ID Token
+## Decode ID Token
 
 ## Introspection Request
 
