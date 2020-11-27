@@ -68,7 +68,7 @@
             clients.build();
             clients.selected = configuration.get_active_client();
 
-            const query = new URLSearchParams(location.search);
+            const query = new URLSearchParams(location.hash.substr(1));
             if (query.has("issuer")) {
                 history.replaceState(null, null, location.pathname);
                 providers.add_provider_dialog({
