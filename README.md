@@ -18,9 +18,9 @@ Get one of following from your OpenID Connect provider
 
 1. Issuer name that resolves to well known discovery endpoint
    - Enter name into Issuer field, then click Fetch
-2. Discovery document as Json
+1. Discovery document as Json
    - Copy Json document on Clipboard, then click Paste from Clipboard
-3. Values for authorization and token endpoints, and optionally others
+1. Values for authorization and token endpoints, and optionally others
    - Enter endpoint values into respective fields
 
 # Registering OpenID Connect client
@@ -30,12 +30,12 @@ Navigate to [Configuration](https://psteniusubi.github.io/oidc-tester/configurat
 Register this app with the OpenID Connect provider
 
 1. Send Client configuration request to provider
-   a. Click Copy to Clipboard
-   b. Submit registration request to provider. 
-   c. Copy registration response on Clipboard, then click Paste from Clipboard
-2. Send redirect uri to provider
-   a. https://psteniusubi.github.io/oidc-tester/authorization-code-flow.html
-   b. Get client_id and optionally client_secret values from provider, enter into respective fields
+   1. Click Copy to Clipboard
+   1. Submit registration request to provider. 
+   1. Copy registration response on Clipboard, then click Paste from Clipboard
+1. Send redirect uri to provider
+   1. https://psteniusubi.github.io/oidc-tester/authorization-code-flow.html
+   1. Get client_id and optionally client_secret values from provider, enter into respective fields
 
 Remember to click Set Active to activate a client.
 
