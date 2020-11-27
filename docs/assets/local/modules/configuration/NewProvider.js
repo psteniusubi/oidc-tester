@@ -44,8 +44,8 @@ export class NewProvider extends ModalDialog {
         }
         form.elements["clear"].addEventListener("click", async e => {
             this.set_metadata("{}", true);
-            this.form.elements["metadata"].focus();
-            this.form.elements["metadata"].select();
+            form.elements["metadata"].focus();
+            form.elements["metadata"].select();
         });
         form.addEventListener("input", e => {
             if (e.target instanceof HTMLInputElement) {

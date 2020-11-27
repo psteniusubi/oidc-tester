@@ -18,8 +18,8 @@ export class NewClient extends ModalDialog {
         const form = section.querySelector("form");
         if ("writeText" in navigator.clipboard) {
             form.elements["copy"].addEventListener("click", async e => {
-                this.form.elements["metadata"].focus();
-                this.form.elements["metadata"].select();
+                form.elements["metadata"].focus();
+                form.elements["metadata"].select();
                 await navigator.clipboard.writeText(form.elements["metadata"].value);
             });
         } else {
@@ -39,8 +39,8 @@ export class NewClient extends ModalDialog {
         }
         form.elements["clear"].addEventListener("click", async e => {
             this.set_metadata("{}", true);
-            this.form.elements["metadata"].focus();
-            this.form.elements["metadata"].select();
+            form.elements["metadata"].focus();
+            form.elements["metadata"].select();
         });
         form.addEventListener("input", e => {
             if (e.target instanceof HTMLInputElement) {
