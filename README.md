@@ -52,3 +52,31 @@ Navigate to [Tester](https://psteniusubi.github.io/oidc-tester/authorization-cod
 ## Introspection Request
 
 ## UserInfo Request
+
+# Live Testing
+
+1. Register OpenID Connect Provider
+   * Click link below to add issuer login.example.ubidemo.com
+   * https://psteniusubi.github.io/oidc-tester/configuration.html#issuer=https://login.example.ubidemo.com/uas
+   * Click Fetch
+1. Register OpenID Connect Client
+   * Navigate to 
+   * https://psteniusubi.github.io/oidc-tester/configuration.html
+   * From list of providers, select login.example.ubidemo.com
+   * Below Client click New
+   * Copy Client configuration from below on Clipboard, then click Paste from Clipboard
+   
+```json
+{
+    "scope":  "openid",
+    "redirect_uris":  [
+                          "https://psteniusubi.github.io/oidc-tester/authorization-code-flow.html",
+                          "https://psteniusubi.github.io/oidc-tester/spa.html"
+                      ],
+    "grant_types":  [
+                        "authorization_code"
+                    ],
+    "client_id":  "5aa312bb-be15-4546-bafc-20608834b82b",
+    "client_secret":  "M1lwPKB82yZ9rqA61rv5ZDGn6CgRDDil"
+}
+```
