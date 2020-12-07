@@ -86,11 +86,30 @@ function redirect_uri_title(client) {
     return JSON.stringify({ redirect_uris: client.redirect_uris }, null, 2);
 }
 
+async function format_http_error(e) {
+    let json = {};
+    if ("http_error" === e.error) {
+        try {
+            json = await e.http_response.json();
+        } catch {
+            json = {};
+        }
+        json["http_error"] = e.http_status;
+    } else if ("fetch_error" === e.error) {
+        json["fetch_error"] = e.fetch_error.toString();
+    } else {
+        json["error"] = e.toString();
+    }
+    //json["http_request"] = `${e.http_request.method} ${e.http_request.url}`;
+    return json;
+}
+
 export {
     hide_all_sections, toggle_section, show_section, hide_section,
     get_form_value, is_form_valid,
     create_form_input,
     remove_empty_values,
     random_text,
-    redirect_uri_pattern, redirect_uri_title
+    redirect_uri_pattern, redirect_uri_title,
+    format_http_error
 };

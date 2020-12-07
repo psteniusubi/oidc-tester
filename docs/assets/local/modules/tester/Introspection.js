@@ -1,5 +1,5 @@
 import { parsed } from "../../../../../assets/common/modules/document-promises.js";
-import { hide_all_sections, toggle_section, show_section, hide_section, get_form_value, is_form_valid, create_form_input, remove_empty_values } from "./helpers.js";
+import { hide_all_sections, toggle_section, show_section, hide_section, get_form_value, is_form_valid, create_form_input, remove_empty_values, format_http_error } from "./helpers.js";
 import { http_get, http_post } from "../../../../../assets/common/modules/fetch.js";
 import { Events } from "./Events.js";
 
@@ -48,7 +48,12 @@ export class Introspection {
         const request = new URLSearchParams(new FormData(form));
         remove_empty_values(request);
         request.delete("introspection_endpoint");
-        const json = await http_post(endpoint, request);
+        let json = {};
+        try {
+            json = await http_post(endpoint, request);
+        } catch (e) {
+            json = await format_http_error(e);
+        }
         await this.init_response(json);
         this.request.toggle(false);
         this.response.toggle(true);

@@ -1,6 +1,6 @@
 import { parsed } from "../../../../../assets/common/modules/document-promises.js";
-import { hide_all_sections, toggle_section, show_section, hide_section, get_form_value, is_form_valid, create_form_input, remove_empty_values } from "./helpers.js";
-import { http_get, http_post } from "../../../../../assets/common/modules/fetch.js";
+import { hide_all_sections, toggle_section, show_section, hide_section, get_form_value, is_form_valid, create_form_input, remove_empty_values, format_http_error } from "./helpers.js";
+import { http, http_get, http_post } from "../../../../../assets/common/modules/fetch.js";
 import { Events } from "./Events.js";
 
 export class UserInfo {
@@ -47,7 +47,12 @@ export class UserInfo {
         remove_empty_values(request);
         request.delete("userinfo_endpoint");
         if (name === "post") {
-            const json = await http_post(endpoint, request);
+            let json = {};
+            try {
+                json = await http_post(endpoint, request);
+            } catch (e) {
+                json = await format_http_error(e);
+            }
             await this.init_response(json);
         } else {
             const token = form.elements["access_token"].value;
@@ -55,8 +60,12 @@ export class UserInfo {
                 method: "GET",
                 headers: { "Authorization": "Bearer " + token }
             });
-            const response = await fetch(request);
-            const json = await response.json();
+            let json = {};
+            try {
+                json = await http.invoke_json(request);
+            } catch (e) {
+                json = await format_http_error(e);
+            }
             await this.init_response(json);
         }
         hide_section("token_response");

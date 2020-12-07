@@ -1,5 +1,5 @@
 import { parsed } from "../../../../../assets/common/modules/document-promises.js";
-import { hide_all_sections, toggle_section, show_section, hide_section, get_form_value, is_form_valid, create_form_input } from "./helpers.js";
+import { hide_all_sections, toggle_section, show_section, hide_section, get_form_value, is_form_valid, create_form_input, format_http_error } from "./helpers.js";
 import { http_get, http_post } from "../../../../../assets/common/modules/fetch.js";
 import { decode_jwt } from "../../../common/modules/jwt.js";
 import { Events } from "./Events.js";
@@ -51,7 +51,8 @@ export class IdToken {
             const jwt = await decode_jwt(request.get("id_token"), jwks);
             await this.init_response(jwt.header, jwt.body);
         } catch (e) {
-            await this.init_response({ error: e }, {});
+            const json = await format_http_error(e);
+            await this.init_response(json, {});
         }
         this.request.toggle(false);
         this.response.toggle(true);

@@ -1,5 +1,5 @@
 import { parsed } from "../../../../../assets/common/modules/document-promises.js";
-import { hide_all_sections, toggle_section, show_section, hide_section, get_form_value, create_form_input, remove_empty_values, random_text, redirect_uri_pattern, redirect_uri_title } from "./helpers.js";
+import { hide_all_sections, toggle_section, show_section, hide_section, get_form_value, create_form_input, remove_empty_values, random_text, redirect_uri_pattern, redirect_uri_title, format_http_error } from "./helpers.js";
 import { http_get, http_post } from "../../../../../assets/common/modules/fetch.js";
 import { Events } from "./Events.js";
 
@@ -53,7 +53,7 @@ export class AccessToken {
                 Events.dispatch_token();
             }
             return true;
-        } else if (("error" in json)) {
+        } else if (("error" in json) || ("http_error" in json) || ("fetch_error" in json)) {
             if (event === true) {
                 Events.dispatch_token_error();
             }
@@ -71,7 +71,12 @@ export class AccessToken {
         const request = new URLSearchParams(new FormData(form));
         remove_empty_values(request);
         request.delete("token_endpoint");
-        const json = await http_post(endpoint, request);
+        let json = {};
+        try {
+            json = await http_post(endpoint, request);
+        } catch (e) {
+            json = await format_http_error(e);
+        }
         if (await this.init_response(json, true)) {
             localStorage.removeItem("code_verifier");
         }

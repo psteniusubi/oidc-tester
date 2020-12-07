@@ -14,7 +14,8 @@
             --grid-main-area-width: minmax(auto, 72em);
         }
 
-        section>form input:invalid {
+        section>form input:invalid,
+        section>form input[name*="error"] {
             outline: 2px solid salmon;
             outline-offset: -2px;
         }
@@ -229,7 +230,7 @@
                 <input type="checkbox" id="id_token_hide" checked />
                 <h2><label for="id_token_hide">ID Token</label></h2>
                 <section>
-                    <form autocomplete="off">
+                    <form autocomplete="off" novalidate>
                         <label>
                             <span>jwks_uri</span>
                             <input class="flex1" type="text" placeholder="jwks_uri" name="jwks_uri" required />
@@ -260,7 +261,7 @@
                 <input type="checkbox" id="introspection_request_hide" checked />
                 <h2><label for="introspection_request_hide">Introspection Request</label></h2>
                 <section>
-                    <form autocomplete="off">
+                    <form autocomplete="off" novalidate>
                         <label>
                             <span>introspection_endpoint</span>
                             <input class="flex1" type="text" placeholder="introspection_endpoint"
@@ -300,7 +301,7 @@
                 <input type="checkbox" id="userinfo_request_hide" checked />
                 <h2><label for="userinfo_request_hide">UserInfo Request</label></h2>
                 <section>
-                    <form autocomplete="off">
+                    <form autocomplete="off" novalidate>
                         <label>
                             <span>userinfo_endpoint</span>
                             <input class="flex1" type="text" placeholder="userinfo_endpoint" name="userinfo_endpoint"
