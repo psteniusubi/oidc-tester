@@ -76,6 +76,7 @@ export class Authorization {
             form.elements["code_challenge"].value = code_challenge;
         } else {
             form.elements["code_challenge"].removeAttribute("data-code-verifier");
+            form.elements["code_challenge"].value = "";
         }
     }
     async submit() {
