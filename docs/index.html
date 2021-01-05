@@ -20,6 +20,12 @@
             await parsed;
             await create_repository_menu();
             await set_button_href_handlers();
+            const initiate_login = new URLSearchParams(location.search.substring(1));
+            if (initiate_login.has("iss")) {
+                const url = new URL("authorization-code-flow.html", location.href);
+                url.hash = "#" + initiate_login;
+                location.assign(url);
+            }
         }
         build_page();
     </script>
@@ -36,7 +42,7 @@
             <button href="configuration.html" target="_self">Configuration</button>
             <div>
                 <button>
-                    <span>Repositories</span>&nbsp;<icon class="arrow-drop-down"></icon>                    
+                    <span>Repositories</span>&nbsp;<icon class="arrow-drop-down"></icon>
                 </button>
                 <div id="repository_menu">
                     <button href="https://github.com/psteniusubi?tab=repositories">All Repositories</button>

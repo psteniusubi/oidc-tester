@@ -114,6 +114,7 @@
                 <div>
                     <button type="button" name="add">New</button>
                     <button type="button" name="edit">Edit</button>
+                    <button type="button" name="login">Login</button>
                     <button type="button" name="remove">Remove</button>
                 </div>
             </form>
@@ -140,6 +141,7 @@
                         <button type="button" name="add">New</button>
                         <button type="button" name="edit">Edit</button>
                         <button type="button" name="active">Set Active</button>
+                        <button type="button" name="login">Login</button>
                         <button type="button" name="remove">Remove</button>
                     </div>
                 </form>
@@ -212,8 +214,16 @@
                 <input class="flex1" type="text" placeholder="redirect_uris" name="redirect_uris" />
             </label>
             <label>
+                <span>initiate_login_uri</span>
+                <input class="flex1" type="text" placeholder="initiate_login_uri" name="initiate_login_uri" />
+            </label>
+            <label>
                 <span>scope</span>
                 <input class="flex1" type="text" placeholder="scope" name="scope" />
+            </label>
+            <label>
+                <span>client_uri</span>
+                <input class="flex1" type="text" placeholder="client_uri" name="client_uri" />
             </label>
             <label>
                 <span>client_id</span>

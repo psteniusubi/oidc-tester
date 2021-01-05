@@ -90,7 +90,8 @@ export class Clients {
         });
         this.form.elements["add"].addEventListener("click", e => {
             e.preventDefault();
-            const client = new NewClient("client-dialog");
+            if (this.issuer === null) return;
+            const client = new NewClient("client-dialog", this.issuer);
             client.onsubmit(e => {
                 const json = e.detail.dialog.get_metadata_json();
                 this.config.add_client_metadata(this.issuer, json);
@@ -104,10 +105,11 @@ export class Clients {
         });
         this.form.elements["edit"].addEventListener("click", async e => {
             e.preventDefault();
+            if (this.issuer === null) return;
             const selected = this.selected;
             const metadata = await this.config.get_client_metadata(this.issuer, selected);
             if (!("client_id" in metadata)) return;
-            const client = new NewClient("client-dialog");
+            const client = new NewClient("client-dialog", this.issuer);
             client.onsubmit(e => {
                 const json = e.detail.dialog.get_metadata_json();
                 this.config.update_client_metadata(this.issuer, selected, json);
@@ -120,6 +122,23 @@ export class Clients {
             await client.open();
             client.set_metadata(JSON.stringify(metadata, null, 2), true);
         });
+        this.form.elements["active"].addEventListener("click", e => {
+            e.preventDefault();
+            this.config.set_active(this.issuer, this.selected);
+            this.update_active();
+        });
+        this.form.elements["login"].addEventListener("click", e => {
+            e.preventDefault();
+            if (this.issuer === null) return;
+            const client = this.selected;
+            if (client === null) return;
+            const initiate_login = new URLSearchParams();
+            initiate_login.set("iss", this.issuer);
+            initiate_login.set("client_id", client);
+            const url = new URL("authorization-code-flow.html", location.href);
+            url.hash = "#" + initiate_login;
+            location.assign(url);
+        });
         this.form.elements["remove"].addEventListener("click", e => {
             e.preventDefault();
             if (this.issuer === null) return;
@@ -130,11 +149,6 @@ export class Clients {
             this.selected = "";
             this.update_active();
             this.dispatch_click("");
-        });
-        this.form.elements["active"].addEventListener("click", e => {
-            e.preventDefault();
-            this.config.set_active(this.issuer, this.selected);
-            this.update_active();
         });
     }
 }

@@ -111,6 +111,16 @@ export class Providers {
             await idp.open();
             idp.set_metadata(JSON.stringify(metadata, null, 2), true);
         });
+        this.form.elements["login"].addEventListener("click", e => {
+            e.preventDefault();
+            const issuer = this.selected;
+            if (issuer === null) return;
+            const initiate_login = new URLSearchParams();
+            initiate_login.set("iss", issuer);
+            const url = new URL("authorization-code-flow.html", location.href);
+            url.hash = "#" + initiate_login;
+            location.assign(url);
+        });
         this.form.elements["remove"].addEventListener("click", e => {
             e.preventDefault();
             const issuer = this.selected;

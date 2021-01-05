@@ -46,7 +46,22 @@
             await introspection.bind();
             await userinfo.bind();
 
+            const initiate_login = new URLSearchParams(location.hash.substr(1));
+            if (initiate_login.has("iss")) {
+                const issuer = initiate_login.get("iss");
+                let client = null;
+                if (initiate_login.has("client_id")) {
+                    client = configuration.get_client(issuer, initiate_login.get("client_id"));
+                } else {
+                    client = configuration.get_client_list(issuer)[0] || {};
+                }
+                configuration.set_active(issuer, client.index);
+            }
+
             await authorization.init_request();
+            if (initiate_login.has("login_hint")) {
+                authorization.request.form["login_hint"].value = initiate_login.get("login_hint");
+            }
             authorization.request.toggle(true);
 
             const search = location.search;

@@ -2,14 +2,17 @@ import { ModalDialog } from "../../../../../assets/common/modules/ModalDialog.js
 import { http_get } from "../../../../../assets/common/modules/fetch.js";
 
 export class NewClient extends ModalDialog {
-    constructor(id) {
+    constructor(id, issuer) {
         super(id);
+        this.issuer = issuer;
     }
     fields() {
         return [
+            "client_uri",
             "client_id",
             "client_secret",
             "redirect_uris",
+            "initiate_login_uri",
             "scope",
         ];
     }
@@ -59,14 +62,24 @@ export class NewClient extends ModalDialog {
                 this.json_to_form(json);
             }
         });
+
         const redirect_uris = [
             new URL("authorization-code-flow.html", location.href),
             new URL("spa.html", location.href),
         ];
         form.elements["redirect_uris"].value = redirect_uris.join(" ");
+
+        const initiate_login_uri = new URL("index.html", location.href);
+        if ("issuer" in this) {
+            initiate_login_uri.searchParams.set("iss", this.issuer);
+        }
+        form.elements["initiate_login_uri"].value = initiate_login_uri;
+
+        form.elements["client_uri"].value = new URL("index.html", location.href);
+
         form.elements["scope"].value = "openid";
         const json = this.form_to_json();
-        this.set_metadata(JSON.stringify(json, null, 2));
+        this.set_metadata(JSON.stringify(json, null, 2), false);
         return section;
     }
     set_metadata(value, dispatch) {
