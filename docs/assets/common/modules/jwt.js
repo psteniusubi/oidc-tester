@@ -38,7 +38,16 @@ async function decode_jwt(jwt, jwks) {
 
     const header = JSON.parse(atobUrlSafe(jws[0]));
 
-    const body = JSON.parse(atobUrlSafe(jws[1]));
+    const body_string = atobUrlSafe(jws[1]);
+    let body;
+    try {
+        const bytes = Uint8Array.from(body_string, t => t.charCodeAt(0));
+        const s = new TextDecoder("utf-8").decode(bytes);
+        body = JSON.parse(s);
+    } catch {
+        // ignore error
+        body = null; 
+    }
 
     const text2verify = Uint8Array.from(jws[0] + "." + jws[1], t => t.charCodeAt(0));
 
@@ -100,6 +109,7 @@ async function decode_jwt(jwt, jwks) {
 
     return {
         header: header,
+        body_string: body_string,
         body: body,
         jwk: await completion.task,
     };

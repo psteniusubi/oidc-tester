@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>index.html</title>
+    <link rel="stylesheet" type="text/css" href="../../js-tester/assets/common/styles/js-tester.css" />
+    <script async type="module">
+        import { describe, describeClass, assert, console } from "../../js-tester/assets/common/modules/js-tester.js";
+        import { decode_jwt } from "../assets/common/modules/jwt.js";
+        class JwtTestCases {
+            jwks_json = `{"keys": [{"e": "AQAB", "kid": "eiu_JOE2H7wKgGfDAPKY3Y9GI90", "kty": "RSA", "n": "yJoG33PpuVKIrWowxM7EY-3boyfwgIj-eHSTx-a3Dvt_4Qt3b31Im1G8nQaIqX1RLMocNDtgL-XHTQbmOANSoiTSs43ZGXRh-usdDaAGYRwcqHn_PfN3LOPSnBCvmmyPnZKVQmH1VThwUC0AlQ_G7dAqHGCQEwa7jz-RQR3bnvPYaSsx-HG04K4yBUF7F3J_TGb2eCNBTrBoVY_9J0BMe2s8QHv6G5k-PCPKW5zKoIUJ6wQYuwj_BlJ1ZrPYAlmEPyZk3ySc12p4q4lpkx-Xi1_WV9ioUS4Fuw0o89rjb54aP1wZWiv4c7lmeJtCPknP51b9SMHK2F0WtoVf1vn57w"}]}`;
+            jwks = JSON.parse(this.jwks_json);
+            async test1() {
+                assert.assertIn("keys", this.jwks);
+                const jwt = `eyJhbGciOiAiUlMyNTYiLCAia2lkIjogImVpdV9KT0UySDd3S2dHZkRBUEtZM1k5R0k5MCIsICJ0eXAiOiAiSldUIn0.e30.BPsUNN2jmM7UB2NqUY5khCO3yynnIdjxqp0npqDfHKLRlHHbvplASxqOyWPVZo9UNb387oLwOmh8xyEGO6CWDW5H-7OrBmUyP3PFmdAsdFKZo7jhcSJXheCiyhN_6Sgjj8nV2AeTIKPEiRmuhFz6bgpOYI-XP3aftz8WTPfB1hlcEPXsvO35wSXKtqHs-TeTdHNbrv_eAMvef77-GU5foyy2TiWfAnvy_K48ofahTUICee5p_PGZZTFOXM0aYCvxKRjU1sFA4Nq-EO4pM8USmNXTQ-N8EZER-JjUVyLi-BbQIvirNt8K6tpqGKcgHX4PCRQGsVXrC7Pn6OlICj2mmA`;
+                const json = await decode_jwt(jwt, this.jwks);
+                assert.assertIn("header", json);
+                assert.assertIn("body", json);
+                assert.assertIn("jwk", json);
+            }
+            async test2() {
+                const jwt = `eyJhbGciOiAiUlMyNTYiLCAia2lkIjogImVpdV9KT0UySDd3S2dHZkRBUEtZM1k5R0k5MCIsICJ0eXAiOiAiSldUIn0.ew0KICAgICJ0ZXN0IjogICLigqx1cm8iDQp9.B4FtaToA9grvDGxCwyTAxsVuf3pmHZWxUlRGyCN4rksrx16QVa2c4edVHKSxVzC9D_oI5nYskBdNBmeWQPfOAHka175yMk14nPkanXKzw9XcSzz-CfFzgwWPpb-6ItP-O4ZE5pt6omLpYIBvpTjIVmrLXvC49jKBWOzmtxn32NY0_AF-HZsgLZ5LHf__ZnIk3h17vkVcsWZbRUMg81fs4kv5xtokPBolqC_GVtvkCo-cBOh-N8B7Ev8-EBPOjrNiPbW8eL1yCC7yr4ro8sF6Z5tyF5JAUfGTMPlJKjRQ5P7_VuGxSaMEil_1blvuXIPG6BS6plkIx8ISHNJzTYq2fw`;
+                const json = await decode_jwt(jwt, this.jwks);
+                assert.assertIn("header", json);
+                assert.assertIn("body_string", json);
+                assert.assertIn("body", json);
+                assert.assertIn("jwk", json);
+                assert.assertIn("test", json.body);
+                assert.assertAreEqual("€uro", json.body.test);
+                const bytes = Uint8Array.from(json.body_string, t => t.charCodeAt(0));
+                const utf = new TextDecoder("utf-8");
+                const body = JSON.parse(utf.decode(bytes));
+                assert.assertAreEqual("€uro", body.test);
+            }
+        }
+        describeClass(JwtTestCases);
+    </script>
+</head>
+
+<body>
+    <section id="report"></section>
+</body>
+
+</html>
