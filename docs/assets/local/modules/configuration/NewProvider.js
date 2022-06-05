@@ -19,12 +19,19 @@ export class NewProvider extends ModalDialog {
         const form = section.querySelector("form");
         form.elements["fetch"].addEventListener("click", async e => {
             const url = new URL(form.elements["issuer"].value);
-            url.pathname = url.pathname + "/.well-known/openid-configuration";
+            // Some browsers use pathname="/" even if the original URL had no trailing slash
+            if (!url.pathname.endsWith("/")) {
+                url.pathname += "/.well-known/openid-configuration";
+            } else {
+                url.pathname += ".well-known/openid-configuration";
+            }
             let json = {};
             try {
                 json = await http_get(url);
-            } catch {
-                // TODO: show error
+            } catch(e) {
+                alert("Failed to fetch issuer metadata from " + url); // TODO: show better error
+                console.error(e);
+                return;
             }
             this.set_metadata(JSON.stringify(json, null, 2));
             this.json_to_form(json);
