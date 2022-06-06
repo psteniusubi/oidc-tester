@@ -29,6 +29,17 @@ class Completion {
     }
 }
 
+// https://datatracker.ietf.org/doc/html/rfc7518#section-3.1
+// We don't validate that the key type matches the type implied by the alg
+const algToHashFunction = {
+    "RS256": "SHA-256",
+    "RS384": "SHA-384",
+    "RS512": "SHA-512",
+    "ES256": "SHA-256",
+    "ES384": "SHA-384",
+    "ES512": "SHA-512",
+}
+
 async function decode_jwt(jwt, jwks) {
 
     const jws = jwt.split(".");
@@ -38,6 +49,12 @@ async function decode_jwt(jwt, jwks) {
 
     const header = JSON.parse(atobUrlSafe(jws[0]));
 
+    let hash = algToHashFunction[header.alg];
+    if (!hash) {
+        console.warn("Unsupported JWT alg: " + hash + ".");
+        hash = "SHA-256";
+    }
+
     const body_string = atobUrlSafe(jws[1]);
     let body;
     try {
@@ -46,7 +63,7 @@ async function decode_jwt(jwt, jwks) {
         body = JSON.parse(s);
     } catch {
         // ignore error
-        body = null; 
+        body = null;
     }
 
     const text2verify = Uint8Array.from(jws[0] + "." + jws[1], t => t.charCodeAt(0));
@@ -57,21 +74,27 @@ async function decode_jwt(jwt, jwks) {
         return (jwk.use == null || jwk.use == "sig");
     }
 
-    function toCryptoKey(jwk) {
-        // TODO: support EC and oct keys
-        return {
-            "kty": jwk.kty,
-            "n": jwk.n,
-            "e": jwk.e
-        };
-    }
-
+    // Slightly unclean: result used as both key import and verify arguments, although they use different properties
+    // which hash function to use is derived from the JWT headers "alg" property.
     function toCyptoAlg(jwk) {
-        // TODO: support more algorithms
-        return {
-            name: "RSASSA-PKCS1-v1_5",
-            hash: { name: "SHA-256" },
-        };
+        if (jwk.kty === "EC") {
+            return {
+                name: "ECDSA",
+                // Some named curves may be unsupported. The docs officially only
+                // name three NIST curves: P-256, P-384, P-521
+                // https://w3c.github.io/webcrypto/#dfn-NamedCurve
+                namedCurve: jwk.crv,
+                hash: {name: hash},
+            };
+        } else if (jwk.kty === "RSA") {
+            return {
+                name: "RSASSA-PKCS1-v1_5",
+                hash: {name: hash},
+            };
+        } else {
+            // TODO: support oct
+            throw new Error(`Unsupported JWK kty '${jwk.kty}'`);
+        }
     }
 
     const keys = jwks.keys
@@ -85,7 +108,7 @@ async function decode_jwt(jwt, jwks) {
         let result = false;
         try {
             const alg = toCyptoAlg(jwk);
-            const key = await window.crypto.subtle.importKey("jwk", toCryptoKey(jwk), alg, false, ["verify"]);
+            const key = await window.crypto.subtle.importKey("jwk", jwk, alg, false, ["verify"]);
             result = await window.crypto.subtle.verify(alg, key, signature, text2verify);
         } finally {
             if (result === true) {
@@ -98,13 +121,23 @@ async function decode_jwt(jwt, jwks) {
         }
     }
 
-    let todo = keys.length;
-    if (todo > 0) {
-        for (const jwk of keys) {
-            try_verify(jwk, --todo);
+    if (header.kid) {
+        // account for explicit key id referenced in JWT
+        const key = keys.find(k => k.kid === header.kid);
+        if (!key) {
+            throw `key ${header.kid} not found`;
         }
+        try_verify(key, 0);
     } else {
-        throw "key not found";
+        // otherwise just try them all
+        let todo = keys.length;
+        if (todo > 0) {
+            for (const jwk of keys) {
+                try_verify(jwk, --todo);
+            }
+        } else {
+            throw "key not found";
+        }
     }
 
     return {
