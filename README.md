@@ -70,8 +70,7 @@ Navigate to [Tester](https://psteniusubi.github.io/oidc-tester/authorization-cod
 {
     "scope":  "openid",
     "redirect_uris":  [
-                          "https://psteniusubi.github.io/oidc-tester/authorization-code-flow.html",
-                          "https://psteniusubi.github.io/oidc-tester/spa.html"
+                          "https://psteniusubi.github.io/oidc-tester/authorization-code-flow.html"
                       ],
     "grant_types":  [
                         "authorization_code"

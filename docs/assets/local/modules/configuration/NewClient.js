@@ -1,5 +1,4 @@
 import { ModalDialog } from "../../../../../assets/common/modules/ModalDialog.js";
-import { http_get } from "../../../../../assets/common/modules/fetch.js";
 
 export class NewClient extends ModalDialog {
     constructor(id, issuer) {
@@ -50,6 +49,7 @@ export class NewClient extends ModalDialog {
                 if (this.fields().includes(e.target.name)) {
                     const json = this.form_to_json();
                     this.set_metadata(JSON.stringify(json, null, 2));
+                    this.set_error(false);
                     return;
                 }
             }
@@ -57,7 +57,9 @@ export class NewClient extends ModalDialog {
                 let json = {};
                 try {
                     json = JSON.parse(e.target.value);
+                    this.set_error(false);
                 } catch {
+                    this.set_error(true);
                 }
                 this.json_to_form(json);
             }
@@ -65,7 +67,6 @@ export class NewClient extends ModalDialog {
 
         const redirect_uris = [
             new URL("authorization-code-flow.html", location.href),
-            new URL("spa.html", location.href),
         ];
         form.elements["redirect_uris"].value = redirect_uris.join(" ");
 
@@ -80,6 +81,7 @@ export class NewClient extends ModalDialog {
         form.elements["scope"].value = "openid";
         const json = this.form_to_json();
         this.set_metadata(JSON.stringify(json, null, 2), false);
+        this.set_error(false);
         return section;
     }
     set_metadata(value, dispatch) {
@@ -97,6 +99,9 @@ export class NewClient extends ModalDialog {
         } catch {
             return {};
         }
+    }
+    set_error(status) {
+        this.form.elements["metadata"].classList.toggle("error", status === true);
     }
     form_to_json() {
         const json = {};

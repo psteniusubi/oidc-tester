@@ -44,6 +44,13 @@
             resize: vertical;
             height: 15em;
         }
+
+        section>form input:invalid,
+        section>form input.error,
+        section>form textarea.error {
+            outline: 2px solid salmon;
+            outline-offset: -2px;
+        }
     </style>
     <script type="module">
         import { parsed } from "../assets/common/modules/document-promises.js";
@@ -154,8 +161,8 @@
 <template id="idp-dialog">
     <section class="outline">
         <h2>Identity Provider</h2>
-        <form>
-            <div><input class="flex1" type="text" placeholder="Issuer" name="issuer" /></div>
+        <form novalidate>
+            <div><input class="flex1" type="text" placeholder="Issuer" name="issuer" required /></div>
             <div>
                 <button type="button" name="fetch">
                     <icon>cloud_download</icon>&nbsp;<span>Fetch metadata</span>
@@ -170,11 +177,12 @@
             <div><textarea class="flex1" placeholder="Metadata" name="metadata"></textarea></div>
             <label>
                 <span>authorization_endpoint</span>
-                <input class="flex1" type="text" placeholder="authorization_endpoint" name="authorization_endpoint" />
+                <input class="flex1" type="text" placeholder="authorization_endpoint" name="authorization_endpoint"
+                    required />
             </label>
             <label>
                 <span>token_endpoint</span>
-                <input class="flex1" type="text" placeholder="token_endpoint" name="token_endpoint" />
+                <input class="flex1" type="text" placeholder="token_endpoint" name="token_endpoint" required />
             </label>
             <label>
                 <span>userinfo_endpoint</span>
@@ -183,6 +191,10 @@
             <label>
                 <span>introspection_endpoint</span>
                 <input class="flex1" type="text" placeholder="introspection_endpoint" name="introspection_endpoint" />
+            </label>
+            <label>
+                <span>jwks_uri</span>
+                <input class="flex1" type="text" placeholder="jwks_uri" name="jwks_uri" />
             </label>
             </div>
             <div>
@@ -196,7 +208,7 @@
 <template id="client-dialog">
     <section class="outline">
         <h2>Client</h2>
-        <form>
+        <form novalidate>
             <div>
                 <button type="button" name="copy">
                     <icon>content_copy</icon>&nbsp;<span>Copy to Clipboard</span>
@@ -227,7 +239,7 @@
             </label>
             <label>
                 <span>client_id</span>
-                <input class="flex1" type="text" placeholder="client_id" name="client_id" />
+                <input class="flex1" type="text" placeholder="client_id" name="client_id" required />
             </label>
             <label>
                 <span>client_secret</span>
