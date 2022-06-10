@@ -10,6 +10,8 @@ This browser based app requires CORS support from the OpenID Connect provider fo
 
 There is no backend. Browser's [local storage](https://html.spec.whatwg.org/multipage/webstorage.html#webstorage) is used to store any configuration information such as provider metadata and client credentials.
 
+If you want to fork this project then pay attention to dependencies to [psteniusubi.github.io](https://github.com/psteniusubi/psteniusubi.github.io) and [webauthn-tester](https://github.com/psteniusubi/webauthn-tester).
+
 # Registering OpenID Connect provider
 
 Navigate to [Configuration](https://psteniusubi.github.io/oidc-tester/configuration.html) page, then below Identity Provider click New
