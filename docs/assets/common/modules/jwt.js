@@ -1,4 +1,5 @@
 import { atobUrlSafe } from "./base64url.js";
+import { getAlgorithm, importJWK } from "../../../../webauthn-tester/assets/local/modules/Crypto.js";
 
 class Completion {
     constructor() {
@@ -38,6 +39,8 @@ async function decode_jwt(jwt, jwks) {
 
     const header = JSON.parse(atobUrlSafe(jws[0]));
 
+    const alg = header.alg ?? "RS256";
+
     const body_string = atobUrlSafe(jws[1]);
     let body;
     try {
@@ -57,6 +60,7 @@ async function decode_jwt(jwt, jwks) {
         return (jwk.use == null || jwk.use == "sig");
     }
 
+    /*
     function toCryptoKey(jwk) {
         // TODO: support EC and oct keys
         return {
@@ -73,6 +77,7 @@ async function decode_jwt(jwt, jwks) {
             hash: { name: "SHA-256" },
         };
     }
+    */
 
     const keys = jwks.keys
         .filter(isSig);
@@ -84,9 +89,9 @@ async function decode_jwt(jwt, jwks) {
         if (done) return;
         let result = false;
         try {
-            const alg = toCyptoAlg(jwk);
-            const key = await window.crypto.subtle.importKey("jwk", toCryptoKey(jwk), alg, false, ["verify"]);
-            result = await window.crypto.subtle.verify(alg, key, signature, text2verify);
+            //const alg = toCyptoAlg(jwk);
+            const key = await importJWK(jwk, alg);
+            result = await window.crypto.subtle.verify(getAlgorithm(jwk, alg), key, signature, text2verify);
         } finally {
             if (result === true) {
                 completion.resolve(jwk);
