@@ -39,17 +39,19 @@
                 assert.assertIn("keys", vectors.jwks);
                 for(let jwt of vectors.jwt_all) {
                     console.log(jwt);
+                    const json = await decode_jwt(jwt, vectors.jwks);
+                    assert.assertNotNull(json);
                 }
             }
             async test_negat_vectors() {
                 assert.assertIn("keys", vectors.jwks);
                 for(let jwt of vectors.jwt_negat) {
+                    console.log(jwt);
                     try {
                         const json = await decode_jwt(jwt, vectors.jwks);
                         throw new Error("unexpected");
                     } catch(e) {
                         assert.assertAreEqual("cannot verify", e);
-                        console.log(jwt);
                     }
                 }
             }
