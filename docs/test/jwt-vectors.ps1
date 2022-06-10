@@ -1,5 +1,5 @@
 $empty = "{}"
-$claims = @{ "test" = "€uro" } | ConvertTo-Json -Compress
+$claims = @{ "test" = "â‚¬uro" } | ConvertTo-Json -Compress
 
 $ec = Get-Content "ec.keypair.jwk" 
 $rsa = Get-Content "rsa.keypair.jwk" 
