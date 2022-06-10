@@ -40,7 +40,13 @@
                 for(let jwt of vectors.jwt_all) {
                     console.log(jwt);
                     const json = await decode_jwt(jwt, vectors.jwks);
-                    assert.assertNotNull(json);
+                    assert.assertIn("header", json);
+                    console.log(json.header.alg);
+                    assert.assertIn("body", json);
+                    assert.assertIn("jwk", json);
+                    if("test" in json.body) {
+                        assert.assertAreEqual("€uro", json.body.test);
+                    }
                 }
             }
             async test_negat_vectors() {
