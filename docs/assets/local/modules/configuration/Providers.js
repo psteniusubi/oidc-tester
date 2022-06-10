@@ -75,12 +75,16 @@ export class Providers {
     async add_provider_dialog(metadata) {
         const idp = new NewProvider("idp-dialog");
         idp.onsubmit(e => {
-            const json = e.detail.dialog.get_metadata_json();
-            this.config.add_issuer_metadata(json);
-            this.build_table();
-            this.selected = json.issuer;
-            this.dispatch_click(json.issuer);
-            e.detail.close();
+            try {
+                const json = e.detail.dialog.get_metadata_json();
+                this.config.add_issuer_metadata(json);
+                this.build_table();
+                this.selected = json.issuer;
+                this.dispatch_click(json.issuer);
+                e.detail.close();
+            } catch {
+                idp.set_error(true);
+            }
         })
         await idp.open();
         if (metadata !== null && metadata !== undefined) {
@@ -101,12 +105,16 @@ export class Providers {
             if (!("issuer" in metadata)) return;
             const idp = new NewProvider("idp-dialog");
             idp.onsubmit(e => {
-                const json = e.detail.dialog.get_metadata_json();
-                this.config.update_issuer_metadata(selected, json);
-                this.build_table();
-                this.selected = json.issuer;
-                this.dispatch_click(json.issuer);
-                e.detail.close();
+                try {
+                    const json = e.detail.dialog.get_metadata_json();
+                    this.config.update_issuer_metadata(selected, json);
+                    this.build_table();
+                    this.selected = json.issuer;
+                    this.dispatch_click(json.issuer);
+                    e.detail.close();
+                } catch {
+                    idp.set_error(true);
+                }
             })
             await idp.open();
             idp.set_metadata(JSON.stringify(metadata, null, 2), true);

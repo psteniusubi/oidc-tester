@@ -19,6 +19,8 @@ export class Configuration {
     }
     add_issuer_metadata(metadata) {
         if (!has(metadata, "issuer")) throw "invalid issuer metadata";
+        if (!has(metadata, "authorization_endpoint")) throw "invalid issuer metadata";
+        if (!has(metadata, "token_endpoint")) throw "invalid issuer metadata";
         const json = this.get_json();
         const issuer = metadata.issuer;
         let r = false;
@@ -100,7 +102,7 @@ export class Configuration {
         if (has(issuer.clients, metadata.client_id)) {
             // update
             r = false;
-            if(has(issuer.clients[metadata.client_id], "active")) {
+            if (has(issuer.clients[metadata.client_id], "active")) {
                 active = issuer.clients[metadata.client_id].active;
             }
         } else {
@@ -110,7 +112,7 @@ export class Configuration {
         metadata.iat = Date.now();
         issuer.clients[metadata.client_id] = metadata;
         this.save_json(json);
-        if(active === true) {
+        if (active === true) {
             this.set_active(index, metadata.client_id);
         }
         return r;

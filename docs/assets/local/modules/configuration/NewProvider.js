@@ -1,5 +1,6 @@
 import { ModalDialog } from "../../../../../assets/common/modules/ModalDialog.js";
 import { http_get } from "../../../../../assets/common/modules/fetch.js";
+import { format_http_error } from "../tester/helpers.js";
 
 export class NewProvider extends ModalDialog {
     constructor(id) {
@@ -12,6 +13,7 @@ export class NewProvider extends ModalDialog {
             "token_endpoint",
             "userinfo_endpoint",
             "introspection_endpoint",
+            "jwks_uri",
         ];
     }
     async create_popup(section) {
@@ -19,12 +21,15 @@ export class NewProvider extends ModalDialog {
         const form = section.querySelector("form");
         form.elements["fetch"].addEventListener("click", async e => {
             const url = new URL(form.elements["issuer"].value);
-            url.pathname = url.pathname + "/.well-known/openid-configuration";
+            if (!url.pathname.endsWith("/")) url.pathname += "/";
+            url.pathname += ".well-known/openid-configuration";
             let json = {};
             try {
                 json = await http_get(url);
-            } catch {
-                // TODO: show error
+                this.set_error(false);
+            } catch (e) {
+                json = await format_http_error(e);
+                this.set_error(true);
             }
             this.set_metadata(JSON.stringify(json, null, 2));
             this.json_to_form(json);
@@ -43,6 +48,7 @@ export class NewProvider extends ModalDialog {
             e.parentNode.removeChild(e);
         }
         form.elements["clear"].addEventListener("click", async e => {
+            form.elements["issuer"].value = "";
             this.set_metadata("{}", true);
             form.elements["metadata"].focus();
             form.elements["metadata"].select();
@@ -52,6 +58,7 @@ export class NewProvider extends ModalDialog {
                 if (this.fields().includes(e.target.name)) {
                     const json = this.form_to_json();
                     this.set_metadata(JSON.stringify(json, null, 2));
+                    this.set_error(false);
                     return;
                 }
             }
@@ -59,13 +66,16 @@ export class NewProvider extends ModalDialog {
                 let json = {};
                 try {
                     json = JSON.parse(e.target.value);
+                    this.set_error(false);
                 } catch {
+                    this.set_error(true);
                 }
                 this.json_to_form(json);
             }
         });
         const json = this.form_to_json();
         this.set_metadata(JSON.stringify(json, null, 2));
+        this.set_error(false);
         return section;
     }
     set_metadata(value, dispatch) {
@@ -84,6 +94,9 @@ export class NewProvider extends ModalDialog {
             return {};
         }
     }
+    set_error(status) {
+        this.form.elements["metadata"].classList.toggle("error", status === true);
+    }
     form_to_json() {
         const json = {};
         for (const i of this.fields()) {
@@ -98,6 +111,8 @@ export class NewProvider extends ModalDialog {
             let value = "";
             if (i in json) {
                 value = json[i];
+            } else if (i === "issuer") {
+                value = this.form.elements[i].value;
             }
             this.form.elements[i].value = value;
         }

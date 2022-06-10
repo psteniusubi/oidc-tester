@@ -93,13 +93,17 @@ export class Clients {
             if (this.issuer === null) return;
             const client = new NewClient("client-dialog", this.issuer);
             client.onsubmit(e => {
-                const json = e.detail.dialog.get_metadata_json();
-                this.config.add_client_metadata(this.issuer, json);
-                this.build_table();
-                this.selected = json.client_id;
-                this.update_active();
-                this.dispatch_click(json.client_id);
-                e.detail.close();
+                try {
+                    const json = e.detail.dialog.get_metadata_json();
+                    this.config.add_client_metadata(this.issuer, json);
+                    this.build_table();
+                    this.selected = json.client_id;
+                    this.update_active();
+                    this.dispatch_click(json.client_id);
+                    e.detail.close();
+                } catch {
+                    client.set_error(true);
+                }
             })
             client.open();
         });
@@ -111,13 +115,17 @@ export class Clients {
             if (!("client_id" in metadata)) return;
             const client = new NewClient("client-dialog", this.issuer);
             client.onsubmit(e => {
-                const json = e.detail.dialog.get_metadata_json();
-                this.config.update_client_metadata(this.issuer, selected, json);
-                this.build_table();
-                this.selected = json.client_id;
-                this.update_active();
-                this.dispatch_click(json.client_id);
-                e.detail.close();
+                try {
+                    const json = e.detail.dialog.get_metadata_json();
+                    this.config.update_client_metadata(this.issuer, selected, json);
+                    this.build_table();
+                    this.selected = json.client_id;
+                    this.update_active();
+                    this.dispatch_click(json.client_id);
+                    e.detail.close();
+                } catch {
+                    client.set_error(true);
+                }
             })
             await client.open();
             client.set_metadata(JSON.stringify(metadata, null, 2), true);

@@ -100,7 +100,9 @@ async function format_http_error(e) {
     } else {
         json["error"] = e.toString();
     }
-    //json["http_request"] = `${e.http_request.method} ${e.http_request.url}`;
+    if ("http_request" in e) {
+        json["http_request"] = `${e.http_request.method} ${e.http_request.url}`;
+    }
     return json;
 }
 
