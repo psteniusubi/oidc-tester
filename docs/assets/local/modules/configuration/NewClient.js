@@ -13,6 +13,7 @@ export class NewClient extends ModalDialog {
             "redirect_uris",
             "initiate_login_uri",
             "scope",
+            "login_hint",
         ];
     }
     async create_popup(section) {

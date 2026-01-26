@@ -36,6 +36,7 @@ export class Authorization {
         form.elements["redirect_uri"].setAttribute("pattern", redirect_uri_pattern(client));
         form.elements["redirect_uri"].setAttribute("title", redirect_uri_title(client));
         form.elements["scope"].value = client.scope || "openid";
+        form.elements["login_hint"].value = client.login_hint || "";
         if ("code_challenge_methods_supported" in issuer) {
             this.new_code_challenge("S256");
         }
